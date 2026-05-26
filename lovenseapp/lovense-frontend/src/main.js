@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'https://lovense-standard-api-starter.onrender.com';
 const DEMO_UID = 'test-user-001';
 
 const backendDot = document.getElementById('backend-dot');
@@ -41,17 +41,38 @@ async function loadSession() {
   }
 }
 
-function initSdkStub() {
-  qrCode.innerHTML = `
-    <div>
-      <strong>Next wiring steps</strong><br /><br />
-      1. Add Lovense Standard JS SDK script tag<br />
-      2. Fetch real authToken from /auth<br />
-      3. Initialize SDK with uid + authToken<br />
-      4. Call getQrcode()<br />
-      5. Listen: ready, appStatusChange, toyOnlineChange, toyInfoChange, deviceInfoChange
-    </div>
-  `;
+async function initSdk() {
+  try {
+    // 1. Get auth data (authToken) from backend
+    const authRes = await fetch(`${API_BASE}/auth?uid=${DEMO_UID}`);
+    const authData = await authRes.json();
+    // 2. Initialise Lovense SDK with uid and authToken
+    const sdk = new LovenseBasicSdk({
+      uid: DEMO_UID,
+      platform: 'weplay',
+      authToken: authData.authToken || '', // will be empty in MVP stub
+    });
+    // 3. Wait for SDK ready
+    sdk.on('ready', async () => {
+      try {
+        const qr = await sdk.getQrcode();
+        // Display QR image or data
+        if (qr.qrcodeUrl) {
+          qrCode.innerHTML = `<img src="${qr.qrcodeUrl}" alt="Lovense QR" style="max-width:100%;"/>`;
+        } else if (qr.qrcode) {
+          qrCode.textContent = qr.qrcode;
+        }
+      } catch (e) {
+        qrCode.textContent = 'Failed to get QR: ' + e.message;
+      }
+    });
+    // Optional: listen for errors
+    sdk.on('sdkError', (e) => {
+      console.error('SDK error', e);
+    });
+  } catch (e) {
+    qrCode.textContent = 'SDK init error: ' + e.message;
+  }
 }
 
 async function sendCommand(action) {
@@ -78,7 +99,7 @@ async function sendCommand(action) {
 document.getElementById('check-backend').addEventListener('click', checkBackend);
 document.getElementById('get-auth').addEventListener('click', getAuth);
 document.getElementById('load-session').addEventListener('click', loadSession);
-document.getElementById('init-sdk').addEventListener('click', initSdkStub);
+document.getElementById('init-sdk').addEventListener('click', initSdk);
 
 document.querySelectorAll('[data-command]').forEach(btn => {
   btn.addEventListener('click', () => sendCommand(btn.dataset.command));
