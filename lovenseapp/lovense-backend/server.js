@@ -5,6 +5,7 @@
 // This server handles:
 // 1. /ping          - keep-alive endpoint for cron-job.org (prevents Render sleep)
 // 2. /callback      - receives Lovense toy/device data after user scans QR code
+//                     decrypts AES-256-CBC payload using LOVENSE_AES_KEY + LOVENSE_AES_IV
 // 3. /auth          - returns per-user authToken for the frontend SDK (NOT the dev token)
 // 4. /command       - optional: server-side toy command relay fallback
 // =============================================
@@ -12,6 +13,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto'); // built-in Node.js - no install needed
 
 const app = express();
 
@@ -22,12 +24,28 @@ app.use(express.json());
 // =============================================
 // IN-MEMORY SESSION STORE
 // In production, replace with a real database (Supabase, Neon, etc.)
-// Stores: { uid -> { toys, domain, httpsPort, wsPort, appType, platform } }
+// Stores: { uid -> { toys, domain, httpsPort, wssPort, appType, platform } }
 // =============================================
 const userSessions = {};
 
 // =============================================
-// ROUTE: /ping
+// HELPER: Decrypt Lovense AES-256-CBC callback payload
+// Lovense encrypts the callback body before sending it to your URL
+// You must decrypt it using the AES Key + IV from your developer dashboard
+// =============================================
+function decryptCallbackPayload(encryptedMessage) {
+  const key = Buffer.from(process.env.LOVENSE_AES_KEY, 'utf8');
+  const iv = Buffer.from(process.env.LOVENSE_AES_IV, 'utf8');
+
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+  let decrypted = decipher.update(encryptedMessage, 'base64', 'utf8');
+  decrypted += decipher.final('utf8');
+
+  return JSON.parse(decrypted);
+}
+
+// =============================================
+// ROUTE: GET /ping
 // Purpose: cron-job.org hits this every 14 min to prevent Render from sleeping
 // Set up a free cron at https://cron-job.org pointing to https://your-app.onrender.com/ping
 // =============================================
@@ -38,29 +56,49 @@ app.get('/ping', (req, res) => {
 
 // =============================================
 // ROUTE: POST /callback
-// Purpose: Lovense posts device + toy info here after user scans QR code
-// Payload includes: uid, toys[], domain, httpsPort, wssPort, appType, platform, utoken
+// Purpose: Lovense posts encrypted device + toy info here after user scans QR code
+//
+// Lovense sends: { message: '<AES-256-CBC encrypted string>' }
+// We decrypt it to get: { uid, toys[], domain, httpsPort, wssPort, appType, platform, utoken }
 //
 // IMPORTANT SECURITY RULES (from Lovense docs):
-// 1. Verify the uid matches a known user in your system
-// 2. Validate utoken against what you stored for that user
-// 3. Store the device/toy metadata for use in command routing later
+// 1. Decrypt payload using AES Key + IV from your dashboard
+// 2. Verify the uid matches a known user in your system
+// 3. Validate utoken against what you stored for that user
+// 4. Store the device/toy metadata for use in command routing later
 // =============================================
 app.post('/callback', (req, res) => {
-  const payload = req.body;
+  const raw = req.body;
 
-  console.log('[callback] Lovense payload received:');
-  console.log(JSON.stringify(payload, null, 2));
+  console.log('[callback] Raw Lovense payload received:', JSON.stringify(raw));
+
+  // --- Step 1: Decrypt the payload ---
+  let payload;
+  try {
+    if (raw.message) {
+      // Encrypted callback - decrypt using AES Key + IV
+      payload = decryptCallbackPayload(raw.message);
+      console.log('[callback] Decrypted payload:', JSON.stringify(payload, null, 2));
+    } else {
+      // Fallback: unencrypted (dev/test mode or older API versions)
+      payload = raw;
+      console.warn('[callback] No encrypted message field - using raw payload');
+    }
+  } catch (err) {
+    console.error('[callback] Decryption failed:', err.message);
+    console.error('[callback] Check LOVENSE_AES_KEY and LOVENSE_AES_IV in your environment variables');
+    return res.status(400).json({ result: 'error', message: 'Decryption failed' });
+  }
 
   const { uid, toys, domain, httpsPort, wssPort, appType, platform, utoken } = payload;
 
-  // --- Step 1: Basic payload validation ---
+  // --- Step 2: Basic payload validation ---
   if (!uid) {
-    console.warn('[callback] Missing uid in payload');
+    console.warn('[callback] Missing uid in decrypted payload');
     return res.status(400).json({ result: 'error', message: 'Missing uid' });
   }
 
-  // --- Step 2: Validate utoken (TODO: tie to your user store) ---
+  // --- Step 3: Validate utoken (TODO: tie to your user store) ---
   const storedSession = userSessions[uid];
   if (storedSession && storedSession.utoken && storedSession.utoken !== utoken) {
     console.warn('[callback] utoken mismatch for uid:', uid);
@@ -68,7 +106,7 @@ app.post('/callback', (req, res) => {
     // return res.status(403).json({ result: 'error', message: 'Unauthorized' });
   }
 
-  // --- Step 3: Store device state for this user ---
+  // --- Step 4: Store device state for this user ---
   userSessions[uid] = {
     uid,
     utoken,
@@ -195,6 +233,8 @@ app.get('/health', (req, res) => {
     sessions: Object.keys(userSessions).length,
     uptime: process.uptime(),
     time: new Date().toISOString(),
+    aesConfigured: !!(process.env.LOVENSE_AES_KEY && process.env.LOVENSE_AES_IV),
+    tokenConfigured: !!process.env.LOVENSE_DEV_TOKEN,
   });
 });
 
@@ -207,9 +247,12 @@ app.listen(PORT, () => {
   console.log(' Lovense Backend Server Running');
   console.log('=============================================');
   console.log(` Port:       ${PORT}`);
+  console.log(` AES Key:    ${process.env.LOVENSE_AES_KEY ? 'SET' : 'MISSING - callbacks will fail'}`);
+  console.log(` AES IV:     ${process.env.LOVENSE_AES_IV ? 'SET' : 'MISSING - callbacks will fail'}`);
+  console.log(` Dev Token:  ${process.env.LOVENSE_DEV_TOKEN ? 'SET' : 'MISSING'}`);
   console.log(` Endpoints:`);
   console.log(`   GET  /ping           - keep-alive (cron-job.org)`);
-  console.log(`   POST /callback       - Lovense device/toy callback`);
+  console.log(`   POST /callback       - Lovense device/toy callback (AES decrypted)`);
   console.log(`   GET  /auth           - per-user authToken for SDK`);
   console.log(`   GET  /session/:uid   - check user session state`);
   console.log(`   POST /command        - server-side command relay`);
