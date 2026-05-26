@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lovense Build Starter</title>
+    <script type="module" src="/src/main.js"></script>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #111827;
+        --panel-2: #1f2937;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --accent: #14b8a6;
+        --accent-2: #0f766e;
+        --danger: #ef4444;
+        --border: #334155;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, sans-serif;
+        background: linear-gradient(180deg, #020617 0%, #0f172a 100%);
+        color: var(--text);
+      }
+      .app {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .hero { margin-bottom: 24px; }
+      .hero h1 { margin: 0 0 8px; font-size: 2rem; }
+      .hero p { margin: 0; color: var(--muted); max-width: 700px; }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
+      }
+      .card {
+        background: rgba(17,24,39,.92);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+      }
+      .card h2 { margin-top: 0; font-size: 1.1rem; }
+      .muted { color: var(--muted); }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: .95rem;
+        margin-bottom: 12px;
+      }
+      .dot { width: 10px; height: 10px; border-radius: 999px; background: var(--danger); }
+      .dot.ok { background: #22c55e; }
+      .controls { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+      button { border: none; border-radius: 10px; padding: 12px 16px; font-weight: 600; cursor: pointer; }
+      .primary { background: var(--accent); color: #042f2e; }
+      .secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+      .danger { background: #7f1d1d; color: #fecaca; }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: #020617;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        color: #cbd5e1;
+        min-height: 100px;
+        margin-top: 14px;
+      }
+      #qrcode {
+        min-height: 160px;
+        display: grid;
+        place-items: center;
+        background: #020617;
+        border-radius: 12px;
+        border: 1px dashed var(--border);
+        color: var(--muted);
+        margin-top: 14px;
+        padding: 16px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <section class="hero">
+        <h1>Lovense Starter Build</h1>
+        <p>
+          MVP frontend for QR pairing, toy discovery, and basic control.
+          Wired to the Standard JS SDK + backend callback flow.
+        </p>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <h2>1. Backend status</h2>
+          <div class="status">
+            <span id="backend-dot" class="dot"></span>
+            <span id="backend-status">Checking backend...</span>
+          </div>
+          <div class="controls">
+            <button class="secondary" id="check-backend">Check /health</button>
+            <button class="secondary" id="get-auth">Get /auth</button>
+          </div>
+          <pre id="backend-output">No response yet.</pre>
+        </section>
+
+        <section class="card">
+          <h2>2. Lovense SDK pairing</h2>
+          <p class="muted">Wire a real authToken, initialize the SDK, then render the QR code here.</p>
+          <div id="qrcode">QR code will appear here after SDK init.</div>
+          <div class="controls">
+            <button class="primary" id="init-sdk">Init SDK (stub)</button>
+            <button class="secondary" id="load-session">Check session</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>3. Toy control</h2>
+          <p class="muted">MVP server fallback commands. Replace with SDK direct control after pairing.</p>
+          <div class="controls">
+            <button class="primary" data-command="Vibrate:5">Vibrate 5</button>
+            <button class="primary" data-command="Vibrate:10">Vibrate 10</button>
+            <button class="danger" data-command="Stop">Stop</button>
+          </div>
+          <pre id="command-output">No command sent yet.</pre>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>
