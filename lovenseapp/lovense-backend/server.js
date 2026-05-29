@@ -133,25 +133,29 @@ app.post('/callback', (req, res) => {
 // CRITICAL: Returns authToken for SDK - NOT the dev token
 // The dev token NEVER leaves this server
 // =============================================
-app.get('/auth', (req, res) => {
+app.get('/auth', async (req, res) => {
   const uid = req.query.uid || 'test-user-001';
 
   console.log('[auth] Auth request for uid:', uid);
 
-  // In production, request an authToken from Lovense API using the developer token
   try {
     const fetch = (await import('node-fetch')).default;
-    const apiRes = await fetch('https://api.lovense.com/api/v2/token', {
+    const apiRes = await fetch('https://api.lovense-api.com/api/basicApi/getToken', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid, devToken: process.env.LOVENSE_DEV_TOKEN })
+      body: JSON.stringify({
+        token: process.env.LOVENSE_DEV_TOKEN,
+        uid,
+        uname: uid
+      })
     });
     const apiData = await apiRes.json();
-    if (!apiRes.ok) {
+    console.log('[auth] Lovense API response:', JSON.stringify(apiData));
+    if (apiData.code !== 0) {
       console.error('[auth] Lovense API error', apiData);
-      return res.status(502).json({ result: 'error', message: 'Failed to obtain auth token' });
+      return res.status(502).json({ result: 'error', message: apiData.message || 'Failed to obtain auth token' });
     }
-    res.json({ uid, authToken: apiData.authToken });
+    res.json({ uid, authToken: apiData.data.authToken });
   } catch (e) {
     console.error('[auth] exception', e);
     res.status(500).json({ result: 'error', message: e.message });
