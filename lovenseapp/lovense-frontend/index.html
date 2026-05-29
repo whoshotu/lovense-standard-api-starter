@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lovense Build Starter</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="https://api.lovense-api.com/basic-sdk/core.min.js"></script>
     <script type="module" src="/src/main.js"></script>
     <style>
@@ -83,6 +84,8 @@
         padding: 16px;
         text-align: center;
       }
+      video { max-width: 100%; border-radius: 8px; margin-top: 12px; }
+      #chat-messages { min-height: 100px; }
     </style>
   </head>
   <body>
@@ -114,18 +117,41 @@
           <p class="muted">Wire a real authToken, initialize the SDK, then render the QR code here.</p>
           <div id="qrcode">QR code will appear here after SDK init.</div>
           <div class="controls">
-            <button class="primary" id="init-sdk">Init SDK (stub)</button>
+            <button class="primary" id="init-sdk">Init SDK</button>
             <button class="secondary" id="load-session">Check session</button>
           </div>
         </section>
 
         <section class="card">
-          <h2>3. Toy control</h2>
-          <p class="muted">MVP server fallback commands. Replace with SDK direct control after pairing.</p>
+          <h2>3. Media & Chat Room</h2>
+          <video id="video-player" controls>
+            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+          </video>
           <div class="controls">
-            <button class="primary" data-command="Vibrate:5">Vibrate 5</button>
-            <button class="primary" data-command="Vibrate:10">Vibrate 10</button>
-            <button class="danger" data-command="Stop">Stop</button>
+            <button class="primary" id="request-control">Request Control</button>
+          </div>
+          <div style="margin-top:12px;">
+            <div id="chat" style="height:150px; overflow-y:auto; border:1px solid #444; padding:8px; border-radius:8px; background:#020617;">
+              <div id="chat-messages"></div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <textarea id="chat-input" rows="2" style="flex:1; background:#1f2937; color:var(--text); border:1px solid #444; border-radius:8px; padding:8px;"></textarea>
+              <button class="primary" id="send-chat" style="align-self:flex-end;">Send</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>4. Toy control</h2>
+          <p class="muted">Control toys like the Lovense Remote app.</p>
+          <div class="controls" style="flex-direction:column; gap:8px;">
+            <label>Vibrate: <span id="vibrate-value">0</span> <input type="range" id="vibrate-range" min="0" max="20" value="0"></label>
+            <label>Rotate: <span id="rotate-value">0</span> <input type="range" id="rotate-range" min="0" max="20" value="0"></label>
+            <label>Pump: <span id="pump-value">0</span> <input type="range" id="pump-range" min="0" max="3" value="0"></label>
+            <div style="display:flex; gap:12px;">
+              <button class="primary" id="send-toy">Send command</button>
+              <button class="danger" id="stop-toy">Stop</button>
+            </div>
           </div>
           <pre id="command-output">No command sent yet.</pre>
         </section>

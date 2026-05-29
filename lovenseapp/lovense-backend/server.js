@@ -138,12 +138,24 @@ app.get('/auth', (req, res) => {
 
   console.log('[auth] Auth request for uid:', uid);
 
-  // TODO: In production, call Lovense API with LOVENSE_DEV_TOKEN to get real authToken
-  res.json({
-    uid: uid,
-    // authToken: 'real_token_from_lovense_api',  // TODO: real auth flow
-    message: 'MVP: wire real authToken from Lovense API here'
-  });
+  // In production, request an authToken from Lovense API using the developer token
+  try {
+    const fetch = (await import('node-fetch')).default;
+    const apiRes = await fetch('https://api.lovense.com/api/v2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid, devToken: process.env.LOVENSE_DEV_TOKEN })
+    });
+    const apiData = await apiRes.json();
+    if (!apiRes.ok) {
+      console.error('[auth] Lovense API error', apiData);
+      return res.status(502).json({ result: 'error', message: 'Failed to obtain auth token' });
+    }
+    res.json({ uid, authToken: apiData.authToken });
+  } catch (e) {
+    console.error('[auth] exception', e);
+    res.status(500).json({ result: 'error', message: e.message });
+  }
 });
 
 // =============================================
@@ -238,21 +250,21 @@ app.get('/health', (req, res) => {
   });
 });
 
-// =============================================
+const http = require('http');
+const server = http.createServer(app);
+const { initSocket } = require('./socketHandler');
+initSocket(server);
+
 // START SERVER
-// =============================================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log('=============================================');
   console.log(' Lovense Backend Server Running');
   console.log('=============================================');
   console.log(` Port:       ${PORT}`);
-  console.log(` AES Key:    ${process.env.LOVENSE_AES_KEY ? 'SET' : 'MISSING - callbacks will fail'}`);
-  console.log(` AES IV:     ${process.env.LOVENSE_AES_IV ? 'SET' : 'MISSING - callbacks will fail'}`);
-  console.log(` Dev Token:  ${process.env.LOVENSE_DEV_TOKEN ? 'SET' : 'MISSING'}`);
   console.log(` Endpoints:`);
   console.log(`   GET  /ping           - keep-alive (cron-job.org)`);
-  console.log(`   POST /callback       - Lovense device/toy callback (AES decrypted)`);
+  console.log(`   POST /callback       - Lovense device/toy callback`);
   console.log(`   GET  /auth           - per-user authToken for SDK`);
   console.log(`   GET  /session/:uid   - check user session state`);
   console.log(`   POST /command        - server-side command relay`);
