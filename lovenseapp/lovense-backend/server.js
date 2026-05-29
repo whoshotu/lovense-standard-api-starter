@@ -264,13 +264,12 @@ const { initSocket } = require('./socketHandler');
 initSocket(server);
 
 // Video database (CSV-backed)
-const CSV_PATH = path.join(__dirname, 'data', 'pornhub.com-db.csv');
-const CSV_EXISTS = fs.existsSync(CSV_PATH);
+const CSV_PATH = fs.existsSync(path.join(__dirname, 'data', 'pornhub.com-db.csv'))
+  ? path.join(__dirname, 'data', 'pornhub.com-db.csv')
+  : path.join(__dirname, 'data', 'pornhub.com-db.sample.csv');
 
 // GET /videos?page=1&limit=20&search=
 app.get('/videos', async (req, res) => {
-  if (!CSV_EXISTS) return res.status(404).json({ error: 'Video database not found' });
-
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
   const search = (req.query.search || '').toLowerCase();

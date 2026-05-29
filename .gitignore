@@ -8,8 +8,8 @@ lovenseapp/lovense-frontend/package-lock.json
 RemoteMCP.zip
 pornhub.com-db.zip
 
-# Large data files (CSV)
-lovenseapp/lovense-backend/data/
+# Large data files (CSV - full DB too big for git)
+lovenseapp/lovense-backend/data/pornhub.com-db.csv
 
 # Build artifacts (if any)
 /dist
