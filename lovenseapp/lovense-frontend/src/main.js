@@ -73,7 +73,15 @@ videoPlayer.onerror = (e) => {
 
 socket.on('mediaSync', (data) => {
   if (data.action === 'play' && data.url) {
-    loadVideo(data.url, data.currentTime || 0);
+    if (data.isEmbed) {
+      videoPlayer.style.display = 'none';
+      placeholder.style.display = 'none';
+      ytPlayer.style.display = 'block';
+      ytPlayer.src = data.url;
+    } else {
+      ytPlayer.style.display = 'none';
+      loadVideo(data.url, data.currentTime || 0);
+    }
     if (data.playing !== undefined && !data.playing) videoPlayer.pause();
   } else if (data.action === 'skip') {
     playNext();
@@ -248,15 +256,88 @@ document.getElementById('request-control').addEventListener('click', () => {
   commandOutput.textContent = 'Control request sent';
 });
 
-// Tab switching
+// Tab switching + browse init
 document.querySelectorAll('[data-tab]').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
-    document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+    const tabId = 'tab-' + btn.dataset.tab;
+    document.getElementById(tabId).classList.remove('hidden');
+    if (btn.dataset.tab === 'browse') loadVideos();
   });
 });
+
+// Video browser
+const videoGrid = document.getElementById('video-grid');
+const browseSearch = document.getElementById('browse-search');
+const browseLoading = document.getElementById('browse-loading');
+const ytPlayer = document.getElementById('yt-player');
+let browsePage = 1;
+let browseSearchTerm = '';
+let loadingVideos = false;
+
+async function loadVideos() {
+  if (loadingVideos) return;
+  loadingVideos = true;
+  browseLoading.style.display = 'block';
+  try {
+    const params = new URLSearchParams({ page: browsePage, limit: 20 });
+    if (browseSearchTerm) params.set('search', browseSearchTerm);
+    const res = await fetch(`${API_BASE}/videos?${params}`);
+    const data = await res.json();
+    if (browsePage === 1) videoGrid.innerHTML = '';
+    data.videos.forEach(v => {
+      const div = document.createElement('div');
+      div.className = 'vitem';
+      const mins = Math.floor(v.duration / 60);
+      const secs = v.duration % 60;
+      div.innerHTML = `
+        <img src="${v.thumbnail}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22320%22 height=%22180%22><rect fill=%22%231c2135%22 width=%22320%22 height=%22180%22/><text fill=%22%238b91a8%22 x=%22160%22 y=%2290%22 text-anchor=%22middle%22 font-size=%2214%22>No thumb</text></svg>'">
+        <div class="vinfo">
+          <div class="vtitle">${v.title}</div>
+          <div class="vmeta">${mins}:${secs.toString().padStart(2, '0')} · ${(v.views / 1000).toFixed(0)}k views</div>
+        </div>
+      `;
+      div.addEventListener('click', () => playEmbed(v.embed, v.title));
+      videoGrid.appendChild(div);
+    });
+    browseLoading.style.display = 'none';
+    loadingVideos = false;
+    if (data.hasMore) browsePage++;
+  } catch (e) {
+    browseLoading.textContent = 'Failed to load videos';
+    loadingVideos = false;
+  }
+}
+
+// Infinite scroll on browse tab
+document.getElementById('tab-browse').addEventListener('scroll', () => {
+  const el = document.getElementById('tab-browse');
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) loadVideos();
+});
+
+browseSearch.addEventListener('input', () => {
+  clearTimeout(browseSearch._timer);
+  browseSearch._timer = setTimeout(() => {
+    browseSearchTerm = browseSearch.value.trim();
+    browsePage = 1;
+    loadVideos();
+  }, 400);
+});
+
+function playEmbed(embedHtml, title) {
+  // Extract iframe src from embed HTML
+  const match = embedHtml.match(/src="([^"]+)"/);
+  if (match) {
+    videoPlayer.style.display = 'none';
+    placeholder.style.display = 'none';
+    ytPlayer.style.display = 'block';
+    ytPlayer.src = match[1];
+    // Broadcast to room
+    socket.emit('mediaSync', { roomId: ROOM_ID, action: 'play', url: match[1], playing: true, isEmbed: true });
+  }
+}
 
 // Init
 document.getElementById('init-sdk').addEventListener('click', initSdk);

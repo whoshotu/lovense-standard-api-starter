@@ -255,9 +255,68 @@ app.get('/health', (req, res) => {
 });
 
 const http = require('http');
+const fs = require('fs');
+const readline = require('readline');
+const path = require('path');
+
 const server = http.createServer(app);
 const { initSocket } = require('./socketHandler');
 initSocket(server);
+
+// Video database (CSV-backed)
+const CSV_PATH = path.join(__dirname, 'data', 'pornhub.com-db.csv');
+const CSV_EXISTS = fs.existsSync(CSV_PATH);
+
+// GET /videos?page=1&limit=20&search=
+app.get('/videos', async (req, res) => {
+  if (!CSV_EXISTS) return res.status(404).json({ error: 'Video database not found' });
+
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+  const search = (req.query.search || '').toLowerCase();
+  const offset = (page - 1) * limit;
+
+  try {
+    const results = [];
+    let matched = 0;
+    let skipped = 0;
+
+    const rl = readline.createInterface({
+      input: fs.createReadStream(CSV_PATH),
+      crlfDelay: Infinity
+    });
+
+    for await (const line of rl) {
+      if (search) {
+        const cols = line.split('|');
+        const title = (cols[3] || '').toLowerCase();
+        if (!title.includes(search)) continue;
+      }
+      if (skipped < offset) { skipped++; continue; }
+      if (matched >= limit) break;
+
+      const cols = line.split('|');
+      const thumbnail = (cols[1] || '').split(';')[0];
+      results.push({
+        embed: cols[0] || '',
+        thumbnail,
+        title: cols[3] || '',
+        tags: (cols[4] || '').split(';').filter(Boolean),
+        categories: cols[5] || '',
+        pornstar: cols[6] || '',
+        duration: parseInt(cols[7]) || 0,
+        views: parseInt(cols[8]) || 0,
+        rating: parseFloat(cols[9]) || 0,
+      });
+      matched++;
+    }
+
+    res.json({ videos: results, page, limit, hasMore: matched === limit });
+  } catch (e) {
+    console.error('[videos] error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // START SERVER
 const PORT = process.env.PORT || 3000;

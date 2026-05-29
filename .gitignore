@@ -6,6 +6,10 @@ lovenseapp/lovense-frontend/package-lock.json
 
 # Archive files
 RemoteMCP.zip
+pornhub.com-db.zip
+
+# Large data files (CSV)
+lovenseapp/lovense-backend/data/
 
 # Build artifacts (if any)
 /dist

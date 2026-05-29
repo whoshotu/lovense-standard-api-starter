@@ -229,7 +229,57 @@
       }
       .sidebar .tab-content.hidden { display: none; }
 
-      /* Chat */
+      /* Browse */
+      #browse-search {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface-2);
+        color: var(--text);
+        margin-bottom: 10px;
+        font-size: 0.85rem;
+      }
+      .video-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .video-grid .vitem {
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        transition: 0.2s;
+      }
+      .video-grid .vitem:hover { border-color: var(--accent); }
+      .video-grid .vitem img {
+        width: 100%;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+        display: block;
+      }
+      .video-grid .vitem .vinfo {
+        padding: 6px 8px;
+      }
+      .video-grid .vitem .vinfo .vtitle {
+        font-size: 0.78rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .video-grid .vitem .vinfo .vmeta {
+        font-size: 0.7rem;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      #browse-loading {
+        text-align: center;
+        color: var(--muted);
+        padding: 20px;
+        font-size: 0.9rem;
+      }
       #chat-messages { min-height: 100px; }
       #chat-messages .msg { margin-bottom: 8px; font-size: 0.9rem; }
       #chat-messages .msg .user { color: var(--accent); font-weight: 600; }
@@ -360,6 +410,7 @@
           <div class="tab-bar">
             <button class="active" data-tab="chat">Chat</button>
             <button data-tab="toys">Toys</button>
+            <button data-tab="browse">Browse</button>
           </div>
           <div class="tab-content" id="tab-chat">
             <div id="chat-messages"></div>
@@ -375,6 +426,11 @@
               </div>
               <div id="command-output">No command sent yet.</div>
             </div>
+          </div>
+          <div class="tab-content hidden" id="tab-browse">
+            <input id="browse-search" type="text" placeholder="Search videos...">
+            <div id="browse-loading">Loading video library...</div>
+            <div class="video-grid" id="video-grid"></div>
           </div>
 
           <div class="chat-input-area">
