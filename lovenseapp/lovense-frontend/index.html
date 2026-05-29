@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lovense Build Starter</title>
+    <title>WePlay</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="https://api.lovense-api.com/basic-sdk/core.min.js"></script>
     <script type="module" src="/src/main.js"></script>
@@ -69,11 +69,11 @@
         border-radius: 12px;
         border: 1px solid var(--border);
         color: #cbd5e1;
-        min-height: 100px;
+        min-height: 60px;
         margin-top: 14px;
       }
       #qrcode {
-        min-height: 160px;
+        min-height: 120px;
         display: grid;
         place-items: center;
         background: #020617;
@@ -85,70 +85,92 @@
         text-align: center;
       }
       video { max-width: 100%; border-radius: 8px; margin-top: 12px; }
-      #chat-messages { min-height: 100px; }
+      .queue-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: var(--panel-2);
+        border-radius: 8px;
+        margin-bottom: 6px;
+      }
+      .queue-item .url {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-right: 8px;
+      }
+      .queue-item .btn-group {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .queue-item button {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+      }
+      #queue-list {
+        max-height: 200px;
+        overflow-y: auto;
+        margin-top: 10px;
+      }
     </style>
   </head>
   <body>
     <div class="app">
       <section class="hero">
-        <h1>Lovense Starter Build</h1>
+        <h1>WePlay</h1>
         <p>
-          MVP frontend for QR pairing, toy discovery, and basic control.
-          Wired to the Standard JS SDK + backend callback flow.
+          Group media viewing with Lovense toy sync, chat, and remote control.
         </p>
       </section>
 
       <div class="grid">
         <section class="card">
-          <h2>1. Backend status</h2>
-          <div class="status">
-            <span id="backend-dot" class="dot"></span>
-            <span id="backend-status">Checking backend...</span>
-          </div>
-          <div class="controls">
-            <button class="secondary" id="check-backend">Check /health</button>
-            <button class="secondary" id="get-auth">Get /auth</button>
-          </div>
-          <pre id="backend-output">No response yet.</pre>
-        </section>
-
-        <section class="card">
-          <h2>2. Lovense SDK pairing</h2>
-          <p class="muted">Wire a real authToken, initialize the SDK, then render the QR code here.</p>
-          <div id="qrcode">QR code will appear here after SDK init.</div>
+          <h2>1. Pair toys</h2>
           <div class="controls">
             <button class="primary" id="init-sdk">Init SDK</button>
-            <button class="secondary" id="load-session">Check session</button>
+            <span id="pair-status" class="muted" style="line-height:2.5;">Not paired</span>
+          </div>
+          <div id="qrcode">Click "Init SDK" to pair your Lovense toys.</div>
+        </section>
+
+        <section class="card">
+          <h2>2. Media player</h2>
+          <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <input id="media-url" type="text" placeholder="Paste a video URL (mp4, webm, etc.)" style="flex:1; background:#1f2937; color:var(--text); border:1px solid #444; border-radius:8px; padding:10px;">
+            <button class="primary" id="add-to-queue">Add</button>
+          </div>
+          <video id="video-player" controls style="display:none;"></video>
+          <div id="queue-list"></div>
+          <div class="controls">
+            <button class="danger" id="skip-video" style="display:none;">Skip</button>
+            <button class="primary" id="request-control">Request Control</button>
           </div>
         </section>
 
         <section class="card">
-          <h2>3. Media & Chat Room</h2>
-          <video id="video-player" controls>
-            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-          </video>
-          <div class="controls">
-            <button class="primary" id="request-control">Request Control</button>
+          <h2>3. Chat</h2>
+          <div id="chat" style="height:200px; overflow-y:auto; border:1px solid #444; padding:8px; border-radius:8px; background:#020617;">
+            <div id="chat-messages"></div>
           </div>
-          <div style="margin-top:12px;">
-            <div id="chat" style="height:150px; overflow-y:auto; border:1px solid #444; padding:8px; border-radius:8px; background:#020617;">
-              <div id="chat-messages"></div>
-            </div>
-            <div style="display:flex; gap:8px; margin-top:8px;">
-              <textarea id="chat-input" rows="2" style="flex:1; background:#1f2937; color:var(--text); border:1px solid #444; border-radius:8px; padding:8px;"></textarea>
-              <button class="primary" id="send-chat" style="align-self:flex-end;">Send</button>
-            </div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <textarea id="chat-input" rows="2" style="flex:1; background:#1f2937; color:var(--text); border:1px solid #444; border-radius:8px; padding:8px;"></textarea>
+            <button class="primary" id="send-chat" style="align-self:flex-end;">Send</button>
           </div>
         </section>
 
         <section class="card">
           <h2>4. Toy control</h2>
-          <p class="muted">Control toys like the Lovense Remote app.</p>
-          <div class="controls" style="flex-direction:column; gap:8px;">
+          <p class="muted">Sliders like the Lovense Remote app.</p>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
             <label>Vibrate: <span id="vibrate-value">0</span> <input type="range" id="vibrate-range" min="0" max="20" value="0"></label>
             <label>Rotate: <span id="rotate-value">0</span> <input type="range" id="rotate-range" min="0" max="20" value="0"></label>
             <label>Pump: <span id="pump-value">0</span> <input type="range" id="pump-range" min="0" max="3" value="0"></label>
-            <div style="display:flex; gap:12px;">
+            <div style="display:flex; gap:12px; margin-top:4px;">
               <button class="primary" id="send-toy">Send command</button>
               <button class="danger" id="stop-toy">Stop</button>
             </div>

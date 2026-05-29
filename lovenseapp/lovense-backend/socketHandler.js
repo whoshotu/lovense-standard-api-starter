@@ -31,6 +31,10 @@ function initSocket(server) {
       io.to(roomId).emit('controlResponse', { uid, accept });
     });
 
+    socket.on('mediaSync', ({ roomId, action, url, currentTime }) => {
+      socket.to(roomId).emit('mediaSync', { action, url, currentTime });
+    });
+
     socket.on('disconnect', () => {
       console.log('[socket] disconnected', socket.id);
     });

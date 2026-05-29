@@ -3,13 +3,11 @@ const API_BASE = 'https://lovense-standard-api-starter.onrender.com';
 const DEMO_UID = 'test-user-001';
 const ROOM_ID = 'demo-room';
 
-const backendDot = document.getElementById('backend-dot');
-const backendStatus = document.getElementById('backend-status');
-const backendOutput = document.getElementById('backend-output');
 const commandOutput = document.getElementById('command-output');
 const qrCode = document.getElementById('qrcode');
+const pairStatus = document.getElementById('pair-status');
 
-// Socket.io connection
+// Socket
 const socket = io(API_BASE, { transports: ['websocket'] });
 socket.connect();
 
@@ -42,40 +40,117 @@ socket.on('controlResponse', (data) => {
     : `Control request declined by ${data.uid}`;
 });
 
-async function checkBackend() {
-  try {
-    const res = await fetch(`${API_BASE}/health`);
-    const data = await res.json();
-    backendDot.classList.add('ok');
-    backendStatus.textContent = 'Backend online';
-    backendOutput.textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    backendDot.classList.remove('ok');
-    backendStatus.textContent = 'Backend offline';
-    backendOutput.textContent = err.message;
+// Media queue
+let queue = [];
+let currentIndex = -1;
+const videoPlayer = document.getElementById('video-player');
+const queueList = document.getElementById('queue-list');
+const mediaUrlInput = document.getElementById('media-url');
+const skipBtn = document.getElementById('skip-video');
+
+// Listen for media sync from host
+socket.on('mediaSync', (data) => {
+  if (data.action === 'play' && data.url) {
+    videoPlayer.src = data.url;
+    videoPlayer.style.display = 'block';
+    videoPlayer.currentTime = data.currentTime || 0;
+    videoPlayer.play();
+  } else if (data.action === 'pause') {
+    videoPlayer.pause();
+  } else if (data.action === 'skip') {
+    playNext();
+  }
+});
+
+// Broadcast media info when host plays (if we initiated it)
+let amHost = true; // simple: whoever adds is host
+
+function renderQueue() {
+  queueList.innerHTML = '';
+  queue.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'queue-item';
+    div.innerHTML = `
+      <span class="url">${i === currentIndex ? '▶ ' : ''}${item}</span>
+      <div class="btn-group">
+        <button class="primary" data-index="${i}" data-action="play">Play</button>
+        <button class="danger" data-index="${i}" data-action="remove">X</button>
+      </div>
+    `;
+    div.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = Number(btn.dataset.index);
+        if (btn.dataset.action === 'play') playIndex(idx);
+        else removeFromQueue(idx);
+      });
+    });
+    queueList.appendChild(div);
+  });
+}
+
+function addToQueue(url) {
+  const trimmed = url.trim();
+  if (!trimmed) return;
+  queue.push(trimmed);
+  renderQueue();
+  mediaUrlInput.value = '';
+  // auto play if first
+  if (currentIndex === -1) playIndex(0);
+}
+
+function removeFromQueue(idx) {
+  queue.splice(idx, 1);
+  if (idx < currentIndex) currentIndex--;
+  else if (idx === currentIndex) {
+    currentIndex = -1;
+    videoPlayer.style.display = 'none';
+  }
+  renderQueue();
+}
+
+function playIndex(idx) {
+  if (idx < 0 || idx >= queue.length) return;
+  currentIndex = idx;
+  const url = queue[idx];
+  videoPlayer.src = url;
+  videoPlayer.style.display = 'block';
+  videoPlayer.play();
+  skipBtn.style.display = 'inline-block';
+  // broadcast to room
+  socket.emit('mediaSync', { roomId: ROOM_ID, action: 'play', url, currentTime: 0 });
+  renderQueue();
+}
+
+function playNext() {
+  const next = currentIndex + 1;
+  if (next < queue.length) playIndex(next);
+  else {
+    currentIndex = -1;
+    videoPlayer.style.display = 'none';
+    skipBtn.style.display = 'none';
+    renderQueue();
   }
 }
 
-async function getAuth() {
-  try {
-    const res = await fetch(`${API_BASE}/auth?uid=${DEMO_UID}`);
-    const data = await res.json();
-    backendOutput.textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    backendOutput.textContent = err.message;
-  }
-}
+// When video ends, auto next
+videoPlayer.addEventListener('ended', () => {
+  socket.emit('mediaSync', { roomId: ROOM_ID, action: 'skip' });
+  playNext();
+});
 
-async function loadSession() {
-  try {
-    const res = await fetch(`${API_BASE}/session/${DEMO_UID}`);
-    const data = await res.json();
-    qrCode.textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    qrCode.textContent = err.message;
-  }
-}
+videoPlayer.addEventListener('pause', () => {
+  socket.emit('mediaSync', { roomId: ROOM_ID, action: 'pause' });
+});
 
+document.getElementById('add-to-queue').addEventListener('click', () => addToQueue(mediaUrlInput.value));
+mediaUrlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addToQueue(mediaUrlInput.value); });
+skipBtn.addEventListener('click', () => {
+  socket.emit('mediaSync', { roomId: ROOM_ID, action: 'skip' });
+  playNext();
+});
+
+// SDK
 async function initSdk() {
   try {
     const authRes = await fetch(`${API_BASE}/auth?uid=${DEMO_UID}`);
@@ -98,6 +173,8 @@ async function initSdk() {
           qrCode.textContent = qr.qrcode;
         }
         activeSdk = sdk;
+        pairStatus.textContent = 'Paired';
+        pairStatus.style.color = '#22c55e';
       } catch (e) {
         qrCode.textContent = 'Failed to get QR: ' + e.message;
       }
@@ -110,7 +187,7 @@ async function initSdk() {
   }
 }
 
-// Toy control (SDK + socket broadcast)
+// Toy control
 document.getElementById('send-toy').addEventListener('click', () => {
   const vibrate = Number(document.getElementById('vibrate-range').value);
   const rotate = Number(document.getElementById('rotate-range').value);
@@ -119,25 +196,17 @@ document.getElementById('send-toy').addEventListener('click', () => {
   document.getElementById('rotate-value').textContent = rotate;
   document.getElementById('pump-value').textContent = pump;
   const cmd = { vibrate, rotate, pump, time: 5 };
-  if (activeSdk) {
-    activeSdk.sendToyCommand(cmd);
-  }
-  // broadcast to room
+  if (activeSdk) activeSdk.sendToyCommand(cmd);
   socket.emit('toyCommand', { roomId: ROOM_ID, command: cmd });
 });
 
 document.getElementById('stop-toy').addEventListener('click', () => {
-  if (activeSdk) {
-    activeSdk.sendToyCommand({ vibrate: 0, rotate: 0, pump: 0 });
-  }
+  if (activeSdk) activeSdk.sendToyCommand({ vibrate: 0, rotate: 0, pump: 0 });
   socket.emit('toyCommand', { roomId: ROOM_ID, command: { vibrate: 0, rotate: 0, pump: 0 } });
 });
 
-// Listen for toy commands from others
 socket.on('toyCommand', (data) => {
-  if (activeSdk) {
-    activeSdk.sendToyCommand(data.command);
-  }
+  if (activeSdk) activeSdk.sendToyCommand(data.command);
 });
 
 // Chat
@@ -155,9 +224,4 @@ document.getElementById('request-control').addEventListener('click', () => {
 });
 
 // Event listeners
-document.getElementById('check-backend').addEventListener('click', checkBackend);
-document.getElementById('get-auth').addEventListener('click', getAuth);
-document.getElementById('load-session').addEventListener('click', loadSession);
 document.getElementById('init-sdk').addEventListener('click', initSdk);
-
-checkBackend();
