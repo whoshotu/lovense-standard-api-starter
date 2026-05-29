@@ -9,156 +9,311 @@
     <script src="https://api.lovense-api.com/basic-sdk/core.min.js"></script>
     <script type="module" src="/src/main.js"></script>
     <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      :root {
+        --bg: #0b0e1a;
+        --surface: #131724;
+        --surface-2: #1c2135;
+        --text: #f0f2f8;
+        --muted: #8b91a8;
+        --accent: #b44aff;
+        --accent-hover: #9f3ee6;
+        --green: #22c55e;
+        --red: #ef4444;
+        --border: #252b42;
+        --radius: 12px;
+      }
+      body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
       #age-gate {
         position: fixed;
         inset: 0;
-        background: #020617;
+        background: var(--bg);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 9999;
-        padding: 24px;
       }
       #age-gate .box {
-        background: #111827;
-        border: 1px solid #334155;
-        border-radius: 20px;
-        padding: 48px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 56px 48px;
         text-align: center;
-        max-width: 460px;
-        width: 100%;
+        max-width: 420px;
+        width: 90%;
       }
-      #age-gate h1 { margin: 0 0 8px; font-size: 2rem; }
+      #age-gate h2 { margin: 16px 0 8px; font-size: 1.6rem; }
       #age-gate .sub { color: var(--muted); margin-bottom: 32px; }
-      #age-gate .btns { display: flex; gap: 16px; justify-content: center; }
+      #age-gate .btns { display: flex; gap: 14px; justify-content: center; }
       #age-gate .btns button {
-        min-width: 120px;
-        padding: 14px 24px;
+        min-width: 110px;
+        padding: 14px 28px;
         font-size: 1.1rem;
         border: none;
-        border-radius: 12px;
+        border-radius: var(--radius);
         cursor: pointer;
         font-weight: 600;
       }
-      #age-gate .btns .yes { background: var(--accent); color: #042f2e; }
-      #age-gate .btns .no { background: #7f1d1d; color: #fecaca; }
+      #age-gate .btns .yes { background: var(--accent); color: #fff; }
+      #age-gate .btns .no { background: #2a1f1f; color: var(--red); border: 1px solid var(--red); }
       .app { display: none; }
       .app.show { display: block; }
-      :root {
-        --bg: #0f172a;
-        --panel: #111827;
-        --panel-2: #1f2937;
-        --text: #f8fafc;
-        --muted: #94a3b8;
-        --accent: #14b8a6;
-        --accent-2: #0f766e;
-        --danger: #ef4444;
-        --border: #334155;
-      }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        font-family: Inter, system-ui, sans-serif;
-        background: linear-gradient(180deg, #020617 0%, #0f172a 100%);
-        color: var(--text);
-      }
-      .app {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      .hero { margin-bottom: 24px; }
-      .hero h1 { margin: 0 0 8px; font-size: 2rem; }
-      .hero p { margin: 0; color: var(--muted); max-width: 700px; }
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 20px;
-      }
-      .card {
-        background: rgba(17,24,39,.92);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 20px;
-      }
-      .card h2 { margin-top: 0; font-size: 1.1rem; }
-      .muted { color: var(--muted); }
-      .status {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-size: .95rem;
-        margin-bottom: 12px;
-      }
-      .dot { width: 10px; height: 10px; border-radius: 999px; background: var(--danger); }
-      .dot.ok { background: #22c55e; }
-      .controls { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
-      button { border: none; border-radius: 10px; padding: 12px 16px; font-weight: 600; cursor: pointer; }
-      .primary { background: var(--accent); color: #042f2e; }
-      .secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
-      .danger { background: #7f1d1d; color: #fecaca; }
-      pre {
-        white-space: pre-wrap;
-        word-break: break-word;
-        background: #020617;
-        padding: 12px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        color: #cbd5e1;
-        min-height: 60px;
-        margin-top: 14px;
-      }
-      #qrcode {
-        min-height: 120px;
-        display: grid;
-        place-items: center;
-        background: #020617;
-        border-radius: 12px;
-        border: 1px dashed var(--border);
-        color: var(--muted);
-        margin-top: 14px;
-        padding: 16px;
-        text-align: center;
-      }
-      video { max-width: 100%; border-radius: 8px; margin-top: 12px; }
-      .queue-item {
+
+      .header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 8px 12px;
-        background: var(--panel-2);
-        border-radius: 8px;
-        margin-bottom: 6px;
+        padding: 16px 24px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
       }
-      .queue-item .url {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+      .header .logo { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; }
+      .header .logo span { color: var(--accent); }
+      .header .actions { display: flex; gap: 12px; align-items: center; }
+      .header .pair-status {
         font-size: 0.85rem;
         color: var(--muted);
-        margin-right: 8px;
-      }
-      .queue-item .btn-group {
         display: flex;
+        align-items: center;
         gap: 6px;
+      }
+      .header .pair-status .dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: var(--red);
+        display: inline-block;
+      }
+      .header .pair-status .dot.online { background: var(--green); }
+
+      .main-layout {
+        display: flex;
+        gap: 0;
+        height: calc(100vh - 65px);
+      }
+      .media-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 16px 20px;
+        min-width: 0;
+      }
+      .media-top {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .media-top input {
+        flex: 1;
+        padding: 10px 14px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: var(--surface-2);
+        color: var(--text);
+        font-size: 0.9rem;
+      }
+      .media-top button {
+        padding: 10px 18px;
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-weight: 600;
+        background: var(--accent);
+        color: #fff;
+      }
+      .media-top button:hover { background: var(--accent-hover); }
+      .queue-bar {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
         flex-shrink: 0;
       }
-      .queue-item button {
-        padding: 6px 10px;
+      .queue-bar .q-item {
+        flex-shrink: 0;
+        padding: 6px 14px;
+        border-radius: 20px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        cursor: pointer;
         font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+        max-width: 200px;
       }
-      #queue-list {
-        max-height: 200px;
+      .queue-bar .q-item.active { border-color: var(--accent); background: rgba(180,74,255,0.15); }
+      .queue-bar .q-item .remove {
+        color: var(--red);
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 700;
+        background: none;
+        border: none;
+        padding: 0 2px;
+      }
+      .video-container {
+        flex: 1;
+        background: #000;
+        border-radius: var(--radius);
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        min-height: 0;
+      }
+      .video-container video,
+      .video-container iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+      .video-container .placeholder {
+        color: var(--muted);
+        text-align: center;
+      }
+      .video-container .placeholder .icon { font-size: 3rem; margin-bottom: 8px; }
+      .video-controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+        flex-shrink: 0;
+      }
+      .video-controls button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .video-controls .skip { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+      .video-controls .req-ctrl { background: var(--accent); color: #fff; }
+
+      .sidebar {
+        width: 340px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid var(--border);
+        background: var(--surface);
+      }
+      .sidebar .tab-bar {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+      }
+      .sidebar .tab-bar button {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: 0.2s;
+      }
+      .sidebar .tab-bar button.active {
+        color: var(--accent);
+        border-bottom: 2px solid var(--accent);
+      }
+      .sidebar .tab-content {
+        flex: 1;
         overflow-y: auto;
+        padding: 12px 14px;
+      }
+      .sidebar .tab-content.hidden { display: none; }
+
+      /* Chat */
+      #chat-messages { min-height: 100px; }
+      #chat-messages .msg { margin-bottom: 8px; font-size: 0.9rem; }
+      #chat-messages .msg .user { color: var(--accent); font-weight: 600; }
+      #chat-messages .msg .time { color: var(--muted); font-size: 0.75rem; margin-left: 6px; }
+      .chat-input-area {
+        display: flex;
+        gap: 8px;
+        padding: 10px 14px;
+        border-top: 1px solid var(--border);
+      }
+      .chat-input-area textarea {
+        flex: 1;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface-2);
+        color: var(--text);
+        resize: none;
+        font-size: 0.9rem;
+      }
+      .chat-input-area button {
+        padding: 8px 14px;
+        border: none;
+        border-radius: 8px;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        align-self: flex-end;
+      }
+
+      /* Toy controls */
+      .toy-controls { padding: 8px 0; }
+      .toy-controls label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        font-size: 0.9rem;
+      }
+      .toy-controls label .val {
+        min-width: 28px;
+        text-align: center;
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .toy-controls input[type="range"] {
+        flex: 1;
+        accent-color: var(--accent);
+      }
+      .toy-btns {
+        display: flex;
+        gap: 10px;
+        margin-top: 4px;
+      }
+      .toy-btns button {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: var(--radius);
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .toy-btns .send { background: var(--accent); color: #fff; }
+      .toy-btns .stop { background: transparent; color: var(--red); border: 1px solid var(--red); }
+      #command-output {
         margin-top: 10px;
+        font-size: 0.8rem;
+        color: var(--muted);
+        padding: 8px;
+        background: var(--surface-2);
+        border-radius: 8px;
+      }
+
+      @media (max-width: 768px) {
+        .main-layout { flex-direction: column; height: auto; }
+        .sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border); }
+        .sidebar .tab-content { max-height: 300px; }
       }
     </style>
   </head>
   <body>
     <div id="age-gate">
       <div class="box">
-        <h1>🔞</h1>
+        <div style="font-size:3rem;">🔞</div>
         <h2>Are you 18 or older?</h2>
         <p class="sub">This content is intended for adults only.</p>
         <div class="btns">
@@ -167,63 +322,66 @@
         </div>
       </div>
     </div>
+
     <div class="app" id="app">
-      <section class="hero">
-        <h1>WePlay</h1>
-        <p>
-          Group media viewing with Lovense toy sync, chat, and remote control.
-        </p>
-      </section>
+      <header class="header">
+        <div class="logo">We<span>Play</span></div>
+        <div class="actions">
+          <span class="pair-status">
+            <span class="dot" id="status-dot"></span>
+            <span id="status-text">Not paired</span>
+          </span>
+          <button class="header-btn" id="init-sdk" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:8px 16px;cursor:pointer;font-weight:600;">Pair Toy</button>
+        </div>
+      </header>
 
-      <div class="grid">
-        <section class="card">
-          <h2>1. Pair toys</h2>
-          <div class="controls">
-            <button class="primary" id="init-sdk">Init SDK</button>
-            <span id="pair-status" class="muted" style="line-height:2.5;">Not paired</span>
+      <div class="main-layout">
+        <div class="media-area">
+          <div class="media-top">
+            <input id="media-url" type="text" placeholder="Paste a video URL (mp4, YouTube, etc.)">
+            <button id="add-to-queue">Add</button>
           </div>
-          <div id="qrcode">Click "Init SDK" to pair your Lovense toys.</div>
-        </section>
+          <div class="queue-bar" id="queue-bar"></div>
+          <div class="video-container" id="video-container">
+            <div class="placeholder" id="placeholder">
+              <div class="icon">🎬</div>
+              <div>Add a URL to start watching together</div>
+            </div>
+            <video id="video-player" playsinline style="display:none;"></video>
+            <iframe id="yt-player" style="display:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+          </div>
+          <div class="video-controls">
+            <button class="skip" id="skip-video" style="display:none;">Skip</button>
+            <button class="req-ctrl" id="request-control">Request Control</button>
+          </div>
+        </div>
 
-        <section class="card">
-          <h2>2. Media player</h2>
-          <div style="display:flex; gap:8px; margin-bottom:10px;">
-            <input id="media-url" type="text" placeholder="Paste a video URL (mp4, webm, etc.)" style="flex:1; background:#1f2937; color:var(--text); border:1px solid #444; border-radius:8px; padding:10px;">
-            <button class="primary" id="add-to-queue">Add</button>
+        <div class="sidebar">
+          <div class="tab-bar">
+            <button class="active" data-tab="chat">Chat</button>
+            <button data-tab="toys">Toys</button>
           </div>
-          <video id="video-player" controls playsinline style="display:none;"></video>
-          <div id="queue-list"></div>
-          <div class="controls">
-            <button class="danger" id="skip-video" style="display:none;">Skip</button>
-            <button class="primary" id="request-control">Request Control</button>
-          </div>
-        </section>
-
-        <section class="card">
-          <h2>3. Chat</h2>
-          <div id="chat" style="height:200px; overflow-y:auto; border:1px solid #444; padding:8px; border-radius:8px; background:#020617;">
+          <div class="tab-content" id="tab-chat">
             <div id="chat-messages"></div>
           </div>
-          <div style="display:flex; gap:8px; margin-top:8px;">
-            <textarea id="chat-input" rows="2" style="flex:1; background:#1f2937; color:var(--text); border:1px solid #444; border-radius:8px; padding:8px;"></textarea>
-            <button class="primary" id="send-chat" style="align-self:flex-end;">Send</button>
-          </div>
-        </section>
-
-        <section class="card">
-          <h2>4. Toy control</h2>
-          <p class="muted">Sliders like the Lovense Remote app.</p>
-          <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
-            <label>Vibrate: <span id="vibrate-value">0</span> <input type="range" id="vibrate-range" min="0" max="20" value="0"></label>
-            <label>Rotate: <span id="rotate-value">0</span> <input type="range" id="rotate-range" min="0" max="20" value="0"></label>
-            <label>Pump: <span id="pump-value">0</span> <input type="range" id="pump-range" min="0" max="3" value="0"></label>
-            <div style="display:flex; gap:12px; margin-top:4px;">
-              <button class="primary" id="send-toy">Send command</button>
-              <button class="danger" id="stop-toy">Stop</button>
+          <div class="tab-content hidden" id="tab-toys">
+            <div class="toy-controls">
+              <label>Vibrate <span class="val" id="vibrate-value">0</span><input type="range" id="vibrate-range" min="0" max="20" value="0"></label>
+              <label>Rotate <span class="val" id="rotate-value">0</span><input type="range" id="rotate-range" min="0" max="20" value="0"></label>
+              <label>Pump <span class="val" id="pump-value">0</span><input type="range" id="pump-range" min="0" max="3" value="0"></label>
+              <div class="toy-btns">
+                <button class="send" id="send-toy">Send</button>
+                <button class="stop" id="stop-toy">Stop</button>
+              </div>
+              <div id="command-output">No command sent yet.</div>
             </div>
           </div>
-          <pre id="command-output">No command sent yet.</pre>
-        </section>
+
+          <div class="chat-input-area">
+            <textarea id="chat-input" rows="1" placeholder="Type a message..."></textarea>
+            <button id="send-chat">Send</button>
+          </div>
+        </div>
       </div>
     </div>
   </body>

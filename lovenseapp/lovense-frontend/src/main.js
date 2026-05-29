@@ -21,8 +21,8 @@ const DEMO_UID = 'test-user-001';
 const ROOM_ID = 'demo-room';
 
 const commandOutput = document.getElementById('command-output');
-const qrCode = document.getElementById('qrcode');
-const pairStatus = document.getElementById('pair-status');
+const pairStatus = document.getElementById('status-text');
+const statusDot = document.getElementById('status-dot');
 
 // Socket
 const socket = io(API_BASE, { transports: ['websocket'] });
@@ -39,8 +39,8 @@ socket.on('connect', () => {
 
 socket.on('chatMessage', (data) => {
   const msg = document.createElement('div');
-  msg.textContent = `${data.user || 'anon'}: ${data.message}`;
-  msg.style.margin = '4px 0';
+  msg.className = 'msg';
+  msg.innerHTML = `<span class="user">${data.user || 'anon'}</span><span class="time">${new Date(data.timestamp || Date.now()).toLocaleTimeString()}</span><br>${data.message}`;
   chatMessages.appendChild(msg);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
@@ -57,64 +57,67 @@ socket.on('controlResponse', (data) => {
     : `Control request declined by ${data.uid}`;
 });
 
-// Media queue
+// Media
 let queue = [];
 let currentIndex = -1;
 const videoPlayer = document.getElementById('video-player');
-// Suppress initial load errors (no source until user adds a URL)
-videoPlayer.onerror = () => {};
-const queueList = document.getElementById('queue-list');
+const videoContainer = document.getElementById('video-container');
+const placeholder = document.getElementById('placeholder');
+const queueBar = document.getElementById('queue-bar');
 const mediaUrlInput = document.getElementById('media-url');
 const skipBtn = document.getElementById('skip-video');
+videoPlayer.onerror = (e) => {
+  console.warn('Video error:', videoPlayer.error ? videoPlayer.error.message : 'unknown');
+  playNext();
+};
 
-// Listen for media sync from host
 socket.on('mediaSync', (data) => {
   if (data.action === 'play' && data.url) {
-    videoPlayer.src = data.url;
-    videoPlayer.style.display = 'block';
-    videoPlayer.currentTime = data.currentTime || 0;
-    videoPlayer.play();
-  } else if (data.action === 'pause') {
-    videoPlayer.pause();
+    loadVideo(data.url, data.currentTime || 0);
+    if (data.playing !== undefined && !data.playing) videoPlayer.pause();
   } else if (data.action === 'skip') {
     playNext();
   }
 });
 
-// Broadcast media info when host plays (if we initiated it)
-let amHost = true; // simple: whoever adds is host
+function isDirectVideoUrl(url) {
+  return /\.(mp4|webm|ogg|mov|avi|mkv|flv)(\?.*)?$/i.test(url);
+}
+
+function loadVideo(url, currentTime) {
+  videoPlayer.style.display = 'block';
+  placeholder.style.display = 'none';
+  videoPlayer.src = url;
+  videoPlayer.currentTime = currentTime || 0;
+  videoPlayer.play().catch(() => {});
+}
 
 function renderQueue() {
-  queueList.innerHTML = '';
+  queueBar.innerHTML = '';
   queue.forEach((item, i) => {
     const div = document.createElement('div');
-    div.className = 'queue-item';
-    div.innerHTML = `
-      <span class="url">${i === currentIndex ? '▶ ' : ''}${item}</span>
-      <div class="btn-group">
-        <button class="primary" data-index="${i}" data-action="play">Play</button>
-        <button class="danger" data-index="${i}" data-action="remove">X</button>
-      </div>
-    `;
-    div.querySelectorAll('button').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const idx = Number(btn.dataset.index);
-        if (btn.dataset.action === 'play') playIndex(idx);
-        else removeFromQueue(idx);
-      });
+    div.className = 'q-item' + (i === currentIndex ? ' active' : '');
+    const label = item.length > 40 ? item.slice(0, 40) + '…' : item;
+    div.innerHTML = `<span>${i === currentIndex ? '▶ ' : ''}${label}</span><button class="remove" data-index="${i}">×</button>`;
+    div.querySelector('.remove').addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeFromQueue(i);
     });
-    queueList.appendChild(div);
+    div.addEventListener('click', () => playIndex(i));
+    queueBar.appendChild(div);
   });
 }
 
 function addToQueue(url) {
   const trimmed = url.trim();
   if (!trimmed) return;
+  if (!isDirectVideoUrl(trimmed)) {
+    commandOutput.textContent = 'Unsupported URL. Use a direct video link (.mp4, .webm, etc.)';
+    return;
+  }
   queue.push(trimmed);
   renderQueue();
   mediaUrlInput.value = '';
-  // auto play if first
   if (currentIndex === -1) playIndex(0);
 }
 
@@ -124,6 +127,8 @@ function removeFromQueue(idx) {
   else if (idx === currentIndex) {
     currentIndex = -1;
     videoPlayer.style.display = 'none';
+    placeholder.style.display = 'flex';
+    skipBtn.style.display = 'none';
   }
   renderQueue();
 }
@@ -132,12 +137,9 @@ function playIndex(idx) {
   if (idx < 0 || idx >= queue.length) return;
   currentIndex = idx;
   const url = queue[idx];
-  videoPlayer.src = url;
-  videoPlayer.style.display = 'block';
-  videoPlayer.play();
+  loadVideo(url);
   skipBtn.style.display = 'inline-block';
-  // broadcast to room
-  socket.emit('mediaSync', { roomId: ROOM_ID, action: 'play', url, currentTime: 0 });
+  socket.emit('mediaSync', { roomId: ROOM_ID, action: 'play', url, currentTime: 0, playing: true });
   renderQueue();
 }
 
@@ -147,19 +149,15 @@ function playNext() {
   else {
     currentIndex = -1;
     videoPlayer.style.display = 'none';
+    placeholder.style.display = 'flex';
     skipBtn.style.display = 'none';
     renderQueue();
   }
 }
 
-// When video ends, auto next
 videoPlayer.addEventListener('ended', () => {
   socket.emit('mediaSync', { roomId: ROOM_ID, action: 'skip' });
   playNext();
-});
-
-videoPlayer.addEventListener('pause', () => {
-  socket.emit('mediaSync', { roomId: ROOM_ID, action: 'pause' });
 });
 
 document.getElementById('add-to-queue').addEventListener('click', () => addToQueue(mediaUrlInput.value));
@@ -175,34 +173,35 @@ async function initSdk() {
     const authRes = await fetch(`${API_BASE}/auth?uid=${DEMO_UID}`);
     const authData = await authRes.json();
     if (!authData.authToken) {
-      qrCode.textContent = 'Missing authToken – backend not configured';
+      alert('Missing authToken – backend not configured');
       return;
     }
     const sdk = new LovenseBasicSdk({
       uid: DEMO_UID,
-      platform: 'weplay',
+      platform: 'WePlay',
       authToken: authData.authToken
     });
     sdk.on('ready', async () => {
       try {
         const qr = await sdk.getQrcode();
         if (qr.qrcodeUrl) {
-          qrCode.innerHTML = `<img src="${qr.qrcodeUrl}" alt="Lovense QR" style="max-width:100%;"/>`;
+          window.open(qr.qrcodeUrl, '_blank');
+          pairStatus.textContent = 'QR opened';
         } else if (qr.qrcode) {
-          qrCode.textContent = qr.qrcode;
+          pairStatus.textContent = 'QR received';
         }
         activeSdk = sdk;
+        statusDot.classList.add('online');
         pairStatus.textContent = 'Paired';
-        pairStatus.style.color = '#22c55e';
       } catch (e) {
-        qrCode.textContent = 'Failed to get QR: ' + e.message;
+        console.error(e);
       }
     });
     sdk.on('sdkError', (e) => {
       console.error('SDK error', e);
     });
   } catch (e) {
-    qrCode.textContent = 'SDK init error: ' + e.message;
+    console.error(e);
   }
 }
 
@@ -236,11 +235,28 @@ document.getElementById('send-chat').addEventListener('click', () => {
   chatInput.value = '';
 });
 
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    document.getElementById('send-chat').click();
+  }
+});
+
 // Request control
 document.getElementById('request-control').addEventListener('click', () => {
   socket.emit('controlRequest', { roomId: ROOM_ID, uid: DEMO_UID });
   commandOutput.textContent = 'Control request sent';
 });
 
-// Event listeners
+// Tab switching
+document.querySelectorAll('[data-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+    document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+  });
+});
+
+// Init
 document.getElementById('init-sdk').addEventListener('click', initSdk);
