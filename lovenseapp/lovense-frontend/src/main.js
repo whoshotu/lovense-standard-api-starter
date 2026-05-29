@@ -44,6 +44,8 @@ socket.on('controlResponse', (data) => {
 let queue = [];
 let currentIndex = -1;
 const videoPlayer = document.getElementById('video-player');
+// Suppress initial load errors (no source until user adds a URL)
+videoPlayer.onerror = () => {};
 const queueList = document.getElementById('queue-list');
 const mediaUrlInput = document.getElementById('media-url');
 const skipBtn = document.getElementById('skip-video');

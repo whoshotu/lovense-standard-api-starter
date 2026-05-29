@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WePlay</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="https://api.lovense-api.com/basic-sdk/core.min.js"></script>
     <script type="module" src="/src/main.js"></script>
@@ -144,7 +145,7 @@
             <input id="media-url" type="text" placeholder="Paste a video URL (mp4, webm, etc.)" style="flex:1; background:#1f2937; color:var(--text); border:1px solid #444; border-radius:8px; padding:10px;">
             <button class="primary" id="add-to-queue">Add</button>
           </div>
-          <video id="video-player" controls style="display:none;"></video>
+          <video id="video-player" controls playsinline style="display:none;"></video>
           <div id="queue-list"></div>
           <div class="controls">
             <button class="danger" id="skip-video" style="display:none;">Skip</button>
