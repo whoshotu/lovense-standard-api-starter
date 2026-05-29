@@ -1,4 +1,5 @@
 {
+  "name": "weplay",
   "outputDirectory": ".",
   "buildCommand": null
 }
