@@ -9,6 +9,41 @@
     <script src="https://api.lovense-api.com/basic-sdk/core.min.js"></script>
     <script type="module" src="/src/main.js"></script>
     <style>
+      #age-gate {
+        position: fixed;
+        inset: 0;
+        background: #020617;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 24px;
+      }
+      #age-gate .box {
+        background: #111827;
+        border: 1px solid #334155;
+        border-radius: 20px;
+        padding: 48px;
+        text-align: center;
+        max-width: 460px;
+        width: 100%;
+      }
+      #age-gate h1 { margin: 0 0 8px; font-size: 2rem; }
+      #age-gate .sub { color: var(--muted); margin-bottom: 32px; }
+      #age-gate .btns { display: flex; gap: 16px; justify-content: center; }
+      #age-gate .btns button {
+        min-width: 120px;
+        padding: 14px 24px;
+        font-size: 1.1rem;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      #age-gate .btns .yes { background: var(--accent); color: #042f2e; }
+      #age-gate .btns .no { background: #7f1d1d; color: #fecaca; }
+      .app { display: none; }
+      .app.show { display: block; }
       :root {
         --bg: #0f172a;
         --panel: #111827;
@@ -121,7 +156,18 @@
     </style>
   </head>
   <body>
-    <div class="app">
+    <div id="age-gate">
+      <div class="box">
+        <h1>🔞</h1>
+        <h2>Are you 18 or older?</h2>
+        <p class="sub">This content is intended for adults only.</p>
+        <div class="btns">
+          <button class="yes" id="age-yes">Yes</button>
+          <button class="no" id="age-no">No</button>
+        </div>
+      </div>
+    </div>
+    <div class="app" id="app">
       <section class="hero">
         <h1>WePlay</h1>
         <p>

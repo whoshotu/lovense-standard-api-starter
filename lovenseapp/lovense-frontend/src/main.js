@@ -1,3 +1,20 @@
+// Age gate
+const ageGate = document.getElementById('age-gate');
+const appEl = document.getElementById('app');
+if (localStorage.getItem('weplay-age') === 'verified') {
+  ageGate.style.display = 'none';
+  appEl.classList.add('show');
+} else {
+  document.getElementById('age-yes').addEventListener('click', () => {
+    localStorage.setItem('weplay-age', 'verified');
+    ageGate.style.display = 'none';
+    appEl.classList.add('show');
+  });
+  document.getElementById('age-no').addEventListener('click', () => {
+    window.location.href = 'https://google.com';
+  });
+}
+
 let activeSdk = null;
 const API_BASE = 'https://lovense-standard-api-starter.onrender.com';
 const DEMO_UID = 'test-user-001';
