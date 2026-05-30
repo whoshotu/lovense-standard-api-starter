@@ -30,34 +30,20 @@
         min-height: 100vh;
       }
       #age-gate {
-        position: fixed;
-        inset: 0;
-        background: var(--bg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
+        position: fixed; inset: 0; background: var(--bg);
+        display: flex; align-items: center; justify-content: center; z-index: 9999;
       }
       #age-gate .box {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 24px;
-        padding: 56px 48px;
-        text-align: center;
-        max-width: 420px;
-        width: 90%;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 24px; padding: 56px 48px; text-align: center;
+        max-width: 420px; width: 90%;
       }
       #age-gate h2 { margin: 16px 0 8px; font-size: 1.6rem; }
       #age-gate .sub { color: var(--muted); margin-bottom: 32px; }
       #age-gate .btns { display: flex; gap: 14px; justify-content: center; }
       #age-gate .btns button {
-        min-width: 110px;
-        padding: 14px 28px;
-        font-size: 1.1rem;
-        border: none;
-        border-radius: var(--radius);
-        cursor: pointer;
-        font-weight: 600;
+        min-width: 110px; padding: 14px 28px; font-size: 1.1rem;
+        border: none; border-radius: var(--radius); cursor: pointer; font-weight: 600;
       }
       #age-gate .btns .yes { background: var(--accent); color: #fff; }
       #age-gate .btns .no { background: #2a1f1f; color: var(--red); border: 1px solid var(--red); }
@@ -65,293 +51,197 @@
       .app.show { display: block; }
 
       .header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 24px;
-        background: var(--surface);
-        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 24px; background: var(--surface); border-bottom: 1px solid var(--border);
       }
       .header .logo { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; }
       .header .logo span { color: var(--accent); }
       .header .actions { display: flex; gap: 12px; align-items: center; }
+      .header .room-info {
+        font-size: 0.85rem; color: var(--muted);
+        display: flex; align-items: center; gap: 8px;
+      }
+      .header .room-info .copy-btn {
+        background: var(--surface-2); border: 1px solid var(--border);
+        color: var(--text); padding: 4px 10px; border-radius: 6px;
+        cursor: pointer; font-size: 0.75rem;
+      }
       .header .pair-status {
-        font-size: 0.85rem;
-        color: var(--muted);
-        display: flex;
-        align-items: center;
-        gap: 6px;
+        font-size: 0.85rem; color: var(--muted);
+        display: flex; align-items: center; gap: 6px;
       }
       .header .pair-status .dot {
         width: 8px; height: 8px; border-radius: 50%;
-        background: var(--red);
-        display: inline-block;
+        background: var(--red); display: inline-block;
       }
       .header .pair-status .dot.online { background: var(--green); }
 
+      /* Session Setup */
+      #session-setup {
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: center; height: calc(100vh - 80px); gap: 24px;
+      }
+      #session-setup.hidden { display: none; }
+      #session-setup h2 { font-size: 1.8rem; }
+      #session-setup .sub { color: var(--muted); margin-bottom: 8px; }
+      #session-setup .input-group { display: flex; gap: 10px; }
+      #session-setup input {
+        padding: 12px 16px; border-radius: var(--radius);
+        border: 1px solid var(--border); background: var(--surface-2);
+        color: var(--text); font-size: 1rem; width: 260px;
+      }
+      #session-setup .btns { display: flex; gap: 12px; }
+      #session-setup .btns button {
+        padding: 12px 28px; border: none; border-radius: var(--radius);
+        cursor: pointer; font-weight: 600; font-size: 1rem;
+      }
+      #session-setup .btns .primary { background: var(--accent); color: #fff; }
+      #session-setup .btns .secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+
       .main-layout {
-        display: flex;
-        gap: 0;
-        height: calc(100vh - 65px);
+        display: flex; gap: 0; height: calc(100vh - 65px);
       }
+      .main-layout.hidden { display: none; }
       .media-area {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        padding: 16px 20px;
-        min-width: 0;
+        flex: 1; display: flex; flex-direction: column;
+        padding: 16px 20px; min-width: 0;
       }
-      .media-top {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 12px;
-      }
-      .media-top input {
-        flex: 1;
-        padding: 10px 14px;
-        border-radius: var(--radius);
-        border: 1px solid var(--border);
-        background: var(--surface-2);
-        color: var(--text);
-        font-size: 0.9rem;
-      }
-      .media-top button {
-        padding: 10px 18px;
-        border: none;
-        border-radius: var(--radius);
-        cursor: pointer;
-        font-weight: 600;
-        background: var(--accent);
-        color: #fff;
-      }
-      .media-top button:hover { background: var(--accent-hover); }
       .queue-bar {
-        display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        padding-bottom: 12px;
-        margin-bottom: 12px;
-        flex-shrink: 0;
+        display: flex; gap: 8px; overflow-x: auto;
+        padding-bottom: 12px; margin-bottom: 12px; flex-shrink: 0;
       }
       .queue-bar .q-item {
-        flex-shrink: 0;
-        padding: 6px 14px;
-        border-radius: 20px;
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        cursor: pointer;
-        font-size: 0.8rem;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        white-space: nowrap;
-        max-width: 200px;
+        flex-shrink: 0; padding: 6px 14px; border-radius: 20px;
+        background: var(--surface-2); border: 1px solid var(--border);
+        cursor: pointer; font-size: 0.8rem; display: flex;
+        align-items: center; gap: 6px; white-space: nowrap; max-width: 200px;
       }
       .queue-bar .q-item.active { border-color: var(--accent); background: rgba(180,74,255,0.15); }
-      .queue-bar .q-item .remove {
-        color: var(--red);
-        cursor: pointer;
-        font-size: 1rem;
-        font-weight: 700;
-        background: none;
-        border: none;
-        padding: 0 2px;
-      }
       .video-container {
-        flex: 1;
-        background: #000;
-        border-radius: var(--radius);
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        min-height: 0;
+        flex: 1; background: #000; border-radius: var(--radius);
+        overflow: hidden; display: flex; align-items: center;
+        justify-content: center; position: relative; min-height: 0;
       }
       .video-container video,
       .video-container iframe {
-        width: 100%;
-        height: 100%;
-        border: none;
+        width: 100%; height: 100%; border: none;
       }
-      .video-container .placeholder {
-        color: var(--muted);
-        text-align: center;
-      }
+      .video-container .placeholder { color: var(--muted); text-align: center; }
       .video-container .placeholder .icon { font-size: 3rem; margin-bottom: 8px; }
       .video-controls {
-        display: flex;
-        gap: 10px;
-        margin-top: 12px;
-        flex-shrink: 0;
+        display: flex; align-items: center; gap: 14px;
+        padding: 10px 0; flex-shrink: 0;
       }
-      .video-controls button {
-        padding: 8px 16px;
-        border: none;
-        border-radius: var(--radius);
-        cursor: pointer;
-        font-weight: 600;
+      .video-controls #play-btn {
+        width: 40px; height: 40px; border-radius: 50%;
+        border: none; background: var(--accent); color: #fff;
+        font-size: 1.1rem; cursor: pointer; display: flex;
+        align-items: center; justify-content: center;
       }
-      .video-controls .skip { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
-      .video-controls .req-ctrl { background: var(--accent); color: #fff; }
+      .video-controls #play-btn:hover { background: var(--accent-hover); }
+      .video-controls .vol-wrap {
+        display: flex; align-items: center; gap: 8px; flex: 1;
+      }
+      .video-controls .vol-wrap .vol-icon { color: var(--muted); font-size: 0.9rem; }
+      .video-controls .vol-wrap input[type="range"] {
+        flex: 1; max-width: 160px; accent-color: var(--accent);
+      }
 
       .sidebar {
-        width: 340px;
-        flex-shrink: 0;
-        display: flex;
-        flex-direction: column;
-        border-left: 1px solid var(--border);
-        background: var(--surface);
+        width: 340px; flex-shrink: 0; display: flex; flex-direction: column;
+        border-left: 1px solid var(--border); background: var(--surface);
       }
-      .sidebar .tab-bar {
-        display: flex;
-        border-bottom: 1px solid var(--border);
-      }
+      .sidebar .tab-bar { display: flex; border-bottom: 1px solid var(--border); }
       .sidebar .tab-bar button {
-        flex: 1;
-        padding: 12px;
-        border: none;
-        background: transparent;
-        color: var(--muted);
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 0.85rem;
-        transition: 0.2s;
+        flex: 1; padding: 12px; border: none; background: transparent;
+        color: var(--muted); cursor: pointer; font-weight: 600;
+        font-size: 0.85rem; transition: 0.2s;
       }
-      .sidebar .tab-bar button.active {
-        color: var(--accent);
-        border-bottom: 2px solid var(--accent);
-      }
-      .sidebar .tab-content {
-        flex: 1;
-        overflow-y: auto;
-        padding: 12px 14px;
-      }
+      .sidebar .tab-bar button.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+      .sidebar .tab-content { flex: 1; overflow-y: auto; padding: 12px 14px; }
       .sidebar .tab-content.hidden { display: none; }
 
       /* Browse */
-      #browse-search {
-        width: 100%;
-        padding: 8px 10px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        background: var(--surface-2);
-        color: var(--text);
-        margin-bottom: 10px;
-        font-size: 0.85rem;
+      .filter-bar {
+        display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;
       }
+      .filter-bar select, .filter-bar input {
+        padding: 6px 10px; border-radius: 8px;
+        border: 1px solid var(--border); background: var(--surface-2);
+        color: var(--text); font-size: 0.8rem; flex: 1; min-width: 0;
+      }
+      .filter-bar select option { background: var(--surface-2); }
+      #browse-search { width: 100%; }
       .video-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
       }
       .video-grid .vitem {
-        border-radius: 8px;
-        overflow: hidden;
-        cursor: pointer;
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        transition: 0.2s;
+        border-radius: 8px; overflow: hidden; cursor: pointer;
+        background: var(--surface-2); border: 1px solid var(--border); transition: 0.2s;
       }
       .video-grid .vitem:hover { border-color: var(--accent); }
       .video-grid .vitem img {
-        width: 100%;
-        aspect-ratio: 16/9;
-        object-fit: cover;
-        display: block;
+        width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block;
       }
-      .video-grid .vitem .vinfo {
-        padding: 6px 8px;
-      }
+      .video-grid .vitem .vinfo { padding: 6px 8px; }
       .video-grid .vitem .vinfo .vtitle {
-        font-size: 0.78rem;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       }
       .video-grid .vitem .vinfo .vmeta {
-        font-size: 0.7rem;
-        color: var(--muted);
-        margin-top: 2px;
+        font-size: 0.7rem; color: var(--muted); margin-top: 2px;
       }
-      #browse-loading {
-        text-align: center;
-        color: var(--muted);
-        padding: 20px;
-        font-size: 0.9rem;
-      }
+      #browse-loading { text-align: center; color: var(--muted); padding: 20px; font-size: 0.9rem; }
+
+      /* Chat */
       #chat-messages { min-height: 100px; }
       #chat-messages .msg { margin-bottom: 8px; font-size: 0.9rem; }
       #chat-messages .msg .user { color: var(--accent); font-weight: 600; }
       #chat-messages .msg .time { color: var(--muted); font-size: 0.75rem; margin-left: 6px; }
       .chat-input-area {
-        display: flex;
-        gap: 8px;
-        padding: 10px 14px;
-        border-top: 1px solid var(--border);
+        display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border);
       }
       .chat-input-area textarea {
-        flex: 1;
-        padding: 8px 10px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        background: var(--surface-2);
-        color: var(--text);
-        resize: none;
-        font-size: 0.9rem;
+        flex: 1; padding: 8px 10px; border-radius: 8px;
+        border: 1px solid var(--border); background: var(--surface-2);
+        color: var(--text); resize: none; font-size: 0.9rem;
       }
       .chat-input-area button {
-        padding: 8px 14px;
-        border: none;
-        border-radius: 8px;
-        background: var(--accent);
-        color: #fff;
-        cursor: pointer;
-        align-self: flex-end;
+        padding: 8px 14px; border: none; border-radius: 8px;
+        background: var(--accent); color: #fff; cursor: pointer; align-self: flex-end;
       }
+
+      /* Control */
+      .control-section { margin-bottom: 16px; }
+      .control-section label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+      .control-section select {
+        width: 100%; padding: 8px 10px; border-radius: 8px;
+        border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+      }
+      .control-section select option { background: var(--surface-2); }
+      .control-status {
+        font-size: 0.85rem; padding: 8px; border-radius: 8px;
+        background: var(--surface-2); margin: 8px 0; text-align: center;
+      }
+      .control-status .highlight { color: var(--accent); font-weight: 600; }
+      .control-btns { display: flex; gap: 8px; margin-top: 8px; }
+      .control-btns button {
+        flex: 1; padding: 8px; border-radius: 8px; border: none;
+        cursor: pointer; font-weight: 600;
+      }
+      .control-btns .primary { background: var(--accent); color: #fff; }
+      .control-btns .secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
 
       /* Toy controls */
       .toy-controls { padding: 8px 0; }
       .toy-controls label {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 10px;
-        font-size: 0.9rem;
+        display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 0.9rem;
       }
-      .toy-controls label .val {
-        min-width: 28px;
-        text-align: center;
-        color: var(--accent);
-        font-weight: 600;
-      }
-      .toy-controls input[type="range"] {
-        flex: 1;
-        accent-color: var(--accent);
-      }
-      .toy-btns {
-        display: flex;
-        gap: 10px;
-        margin-top: 4px;
-      }
-      .toy-btns button {
-        flex: 1;
-        padding: 10px;
-        border: none;
-        border-radius: var(--radius);
-        font-weight: 600;
-        cursor: pointer;
-      }
+      .toy-controls label .val { min-width: 28px; text-align: center; color: var(--accent); font-weight: 600; }
+      .toy-controls input[type="range"] { flex: 1; accent-color: var(--accent); }
+      .toy-btns { display: flex; gap: 10px; margin-top: 4px; }
+      .toy-btns button { flex: 1; padding: 10px; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; }
       .toy-btns .send { background: var(--accent); color: #fff; }
       .toy-btns .stop { background: transparent; color: var(--red); border: 1px solid var(--red); }
-      #command-output {
-        margin-top: 10px;
-        font-size: 0.8rem;
-        color: var(--muted);
-        padding: 8px;
-        background: var(--surface-2);
-        border-radius: 8px;
-      }
 
       @media (max-width: 768px) {
         .main-layout { flex-direction: column; height: auto; }
@@ -377,6 +267,10 @@
       <header class="header">
         <div class="logo">We<span>Play</span></div>
         <div class="actions">
+          <div class="room-info" id="room-info" style="display:none;">
+            <span>Room: <strong id="room-display">—</strong></span>
+            <button class="copy-btn" id="copy-invite">Copy</button>
+          </div>
           <span class="pair-status">
             <span class="dot" id="status-dot"></span>
             <span id="status-text">Not paired</span>
@@ -385,24 +279,38 @@
         </div>
       </header>
 
-      <div class="main-layout">
+      <!-- Session Setup -->
+      <div id="session-setup">
+        <h2>Start or Join a Session</h2>
+        <p class="sub">Create a private room or join one with an invite code</p>
+        <div class="btns">
+          <button class="primary" id="create-room">Create Room</button>
+        </div>
+        <div class="input-group">
+          <input id="room-code-input" type="text" placeholder="Enter invite code...">
+          <button class="secondary" id="join-room">Join</button>
+        </div>
+        <div id="setup-error" style="color:var(--red);font-size:0.9rem;"></div>
+      </div>
+
+      <div class="main-layout hidden" id="main-layout">
         <div class="media-area">
-          <div class="media-top">
-            <input id="media-url" type="text" placeholder="Paste a video URL (mp4, YouTube, etc.)">
-            <button id="add-to-queue">Add</button>
-          </div>
           <div class="queue-bar" id="queue-bar"></div>
           <div class="video-container" id="video-container">
             <div class="placeholder" id="placeholder">
               <div class="icon">🎬</div>
-              <div>Add a URL to start watching together</div>
+              <div>Select a video from Browse to start watching together</div>
             </div>
             <video id="video-player" playsinline style="display:none;"></video>
             <iframe id="yt-player" style="display:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            <video id="preload-player" preload="auto" style="display:none;"></video>
           </div>
           <div class="video-controls">
-            <button class="skip" id="skip-video" style="display:none;">Skip</button>
-            <button class="req-ctrl" id="request-control">Request Control</button>
+            <button id="play-btn">▶</button>
+            <div class="vol-wrap">
+              <span class="vol-icon">🔊</span>
+              <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1">
+            </div>
           </div>
         </div>
 
@@ -416,6 +324,24 @@
             <div id="chat-messages"></div>
           </div>
           <div class="tab-content hidden" id="tab-toys">
+            <div class="control-section">
+              <label>Control Mode</label>
+              <select id="control-mode-select">
+                <option value="none">None (no control)</option>
+                <option value="granted">Granted (request based)</option>
+                <option value="mutual">Mutual (both control)</option>
+                <option value="master">Master (creator controls all)</option>
+              </select>
+            </div>
+            <div class="control-status" id="control-status">
+              Mode: <span class="highlight">None</span> &middot; Controller: <span class="highlight" id="controller-display">—</span>
+            </div>
+            <div class="control-btns">
+              <button class="primary" id="request-control">Request Control</button>
+              <button class="secondary" id="release-control">Release</button>
+            </div>
+            <div id="toy-owner-status" style="font-size:0.8rem;color:var(--muted);margin-top:8px;"></div>
+            <hr style="border-color:var(--border);margin:12px 0;">
             <div class="toy-controls">
               <label>Vibrate <span class="val" id="vibrate-value">0</span><input type="range" id="vibrate-range" min="0" max="20" value="0"></label>
               <label>Rotate <span class="val" id="rotate-value">0</span><input type="range" id="rotate-range" min="0" max="20" value="0"></label>
@@ -428,6 +354,18 @@
             </div>
           </div>
           <div class="tab-content hidden" id="tab-browse">
+            <div class="filter-bar">
+              <select id="sort-select">
+                <option value="">Default</option>
+                <option value="views">Most Viewed</option>
+                <option value="rating">Highest Rated</option>
+                <option value="duration">Duration</option>
+                <option value="title">Alphabetical</option>
+              </select>
+              <select id="category-select">
+                <option value="">All Categories</option>
+              </select>
+            </div>
             <input id="browse-search" type="text" placeholder="Search videos...">
             <div id="browse-loading">Loading video library...</div>
             <div class="video-grid" id="video-grid"></div>
