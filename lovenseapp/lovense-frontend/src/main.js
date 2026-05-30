@@ -24,7 +24,8 @@ let isPrivateRoom = false;
 let hasUtoken = false;
 let queue = [];
 let currentIndex = -1;
-let playEndTimer = null;
+let skipTimer = null;
+let skipFired = false;
 const queuedEmbeds = new Set();
 const API_BASE = 'https://lovense-standard-api-starter.onrender.com';
 
@@ -145,7 +146,8 @@ function connectSocket(uid, token) {
   socket.on('queueUpdate', (data) => {
     queue = data.queue || [];
     currentIndex = data.currentIndex !== undefined ? data.currentIndex : -1;
-    clearTimeout(playEndTimer);
+    clearTimeout(skipTimer);
+    skipFired = false;
     queuedEmbeds.clear();
     queue.forEach(item => { if (item.embed) queuedEmbeds.add(item.embed); });
     renderQueue();
@@ -168,12 +170,13 @@ function connectSocket(uid, token) {
     }
     currentIndex = data.index;
     const entry = data.entry;
-    clearTimeout(playEndTimer);
+    clearTimeout(skipTimer);
+    skipFired = false;
     if (entry.embed) {
       playEmbed(entry.embed, entry.title);
-      // Auto-skip embed using duration (in seconds)
       if (entry.duration > 0) {
-        playEndTimer = setTimeout(() => {
+        skipTimer = setTimeout(() => {
+          skipFired = true;
           socket.emit('queueSkip', { roomId: currentRoom });
         }, Math.max(1000, entry.duration * 1000 - 2000));
       }
@@ -413,8 +416,9 @@ function renderQueue() {
 
 // Auto-skip on end (direct video) + preload next
 videoPlayer.addEventListener('timeupdate', () => {
-  if (!videoPlayer.duration) return;
+  if (!videoPlayer.duration || skipFired) return;
   if (videoPlayer.currentTime >= videoPlayer.duration - 2) {
+    skipFired = true;
     socket.emit('queueSkip', { roomId: currentRoom });
     return;
   }
@@ -424,6 +428,11 @@ videoPlayer.addEventListener('timeupdate', () => {
       preloadPlayer.src = queue[next].url;
     }
   }
+});
+videoPlayer.addEventListener('ended', () => {
+  if (skipFired) return;
+  skipFired = true;
+  socket.emit('queueSkip', { roomId: currentRoom });
 });
 
 // ==================== Video Browser ====================
