@@ -151,25 +151,40 @@ app.get('/ctoken', async (req, res) => {
 
   const cached = ctokenCache[uid];
   if (cached && Date.now() - cached.fetchedAt < 20 * 60 * 60 * 1000) {
-    return res.json({ ctoken: cached.ctoken });
+    return res.json({ ctoken: cached.ctoken, affiliateLink: process.env.LOVENSE_AFFILIATE_LINK || '' });
   }
 
   try {
     const fetch = (await import('node-fetch')).default;
-    const apiRes = await fetch(
+
+    // Step 1: ensure user is registered with Lovense (required before ctoken)
+    const authRes = await fetch('https://api.lovense-api.com/api/basicApi/getToken', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: process.env.LOVENSE_DEV_TOKEN, uid, uname: uid })
+    });
+    const authData = await authRes.json();
+    if (authData.code !== 0) {
+      console.error('[ctoken] auth registration failed:', authData);
+      return res.status(502).json({ error: 'Failed to register user' });
+    }
+
+    // Step 2: fetch ctoken
+    const ctokenRes = await fetch(
       'https://api.lovense-api.com/api/media/pattern/user/ctoken?userId=' + uid,
       { headers: { dtoken: process.env.LOVENSE_DEV_TOKEN } }
     );
-    const apiData = await apiRes.json();
-    if (!apiData.data || !apiData.data.ctoken) {
-      console.error('[ctoken] Lovense API error', apiData);
-      return res.status(502).json({ error: 'Failed to obtain ctoken' });
+    const ctokenData = await ctokenRes.json();
+    if (!ctokenData.data || !ctokenData.data.ctoken) {
+      console.error('[ctoken] Lovense API error:', ctokenData);
+      return res.status(502).json({ error: 'Failed to obtain ctoken', detail: ctokenData });
     }
-    const ctoken = apiData.data.ctoken;
+
+    const ctoken = ctokenData.data.ctoken;
     ctokenCache[uid] = { ctoken, fetchedAt: Date.now() };
     res.json({ ctoken, affiliateLink: process.env.LOVENSE_AFFILIATE_LINK || '' });
   } catch (e) {
-    console.error('[ctoken] exception', e);
+    console.error('[ctoken] exception:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
