@@ -200,9 +200,14 @@
         background: var(--surface-2); border: 1px solid var(--border); transition: 0.2s;
       }
       .video-grid .vitem:hover { border-color: var(--accent); }
-      .video-grid .vitem img {
-        width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block;
+      .vthumb { position: relative; }
+      .vthumb img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+      .vthumbs-hover {
+        display: none; position: absolute; top: 0; left: 0; width: 100%;
+        grid-template-columns: 1fr 1fr 1fr; gap: 1px; pointer-events: none;
       }
+      .vitem:hover .vthumbs-hover { display: grid; }
+      .vthumbs-hover img { aspect-ratio: 16/9; object-fit: cover; opacity: 0.85; }
       .video-grid .vitem .vinfo { padding: 5px 7px; }
       .video-grid .vitem .vinfo .vtitle {
         font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

@@ -112,6 +112,10 @@ function initSocket(server, userSessions) {
     socket.on('queueAdd', ({ roomId, entry }) => {
       const room = rooms[roomId];
       if (!room) return;
+      // Prevent duplicate embeds in queue
+      if (entry.embed && room.queue.some(e => e.embed === entry.embed)) {
+        return socket.emit('queueDuplicate', { message: 'Already in queue' });
+      }
       room.queue.push(entry);
       if (room.currentIndex === -1) {
         room.currentIndex = 0;

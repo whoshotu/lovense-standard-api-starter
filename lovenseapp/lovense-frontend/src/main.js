@@ -24,6 +24,8 @@ let isPrivateRoom = false;
 let hasUtoken = false;
 let queue = [];
 let currentIndex = -1;
+let playEndTimer = null;
+const queuedEmbeds = new Set();
 const API_BASE = 'https://lovense-standard-api-starter.onrender.com';
 
 // ==================== DOM Refs ====================
@@ -143,6 +145,9 @@ function connectSocket(uid, token) {
   socket.on('queueUpdate', (data) => {
     queue = data.queue || [];
     currentIndex = data.currentIndex !== undefined ? data.currentIndex : -1;
+    clearTimeout(playEndTimer);
+    queuedEmbeds.clear();
+    queue.forEach(item => { if (item.embed) queuedEmbeds.add(item.embed); });
     renderQueue();
     if (currentIndex === -1) {
       videoPlayer.style.display = 'none';
@@ -163,8 +168,15 @@ function connectSocket(uid, token) {
     }
     currentIndex = data.index;
     const entry = data.entry;
+    clearTimeout(playEndTimer);
     if (entry.embed) {
       playEmbed(entry.embed, entry.title);
+      // Auto-skip embed using duration (in seconds)
+      if (entry.duration > 0) {
+        playEndTimer = setTimeout(() => {
+          socket.emit('queueSkip', { roomId: currentRoom });
+        }, Math.max(1000, entry.duration * 1000 - 2000));
+      }
     } else if (entry.url) {
       loadVideo(entry.url);
     }
@@ -176,7 +188,13 @@ function connectSocket(uid, token) {
     renderQueue();
   });
 
-  // ---- Media Sync ----
+  socket.on('queueDuplicate', (data) => {
+    const el = document.getElementById('tab-browse');
+    if (el) {
+      el.style.outline = '2px solid #ff4444';
+      setTimeout(() => { el.style.outline = ''; }, 800);
+    }
+  });
   socket.on('mediaSync', (data) => {
     if (data.action === 'play' && data.url) {
       if (data.isEmbed) {
@@ -393,19 +411,19 @@ function renderQueue() {
   }
 }
 
-// Preload next before end
+// Auto-skip on end (direct video) + preload next
 videoPlayer.addEventListener('timeupdate', () => {
-  if (videoPlayer.duration && videoPlayer.currentTime >= videoPlayer.duration - 10) {
+  if (!videoPlayer.duration) return;
+  if (videoPlayer.currentTime >= videoPlayer.duration - 2) {
+    socket.emit('queueSkip', { roomId: currentRoom });
+    return;
+  }
+  if (videoPlayer.currentTime >= videoPlayer.duration - 10) {
     const next = currentIndex + 1;
     if (next < queue.length && queue[next].url && isDirectVideoUrl(queue[next].url)) {
       preloadPlayer.src = queue[next].url;
     }
   }
-});
-
-// Auto-skip on end
-videoPlayer.addEventListener('ended', () => {
-  socket.emit('queueSkip', { roomId: currentRoom });
 });
 
 // ==================== Video Browser ====================
@@ -444,18 +462,31 @@ async function loadVideos() {
       div.className = 'vitem';
       const mins = Math.floor(v.duration / 60);
       const secs = v.duration % 60;
+      const thumbs = v.thumbnails && v.thumbnails.length > 1
+        ? v.thumbnails.map(t => t.replace(/\(m=[^)]+\)\(mh=[^)]+\)/g, '')).join(';')
+        : '';
+      const mainThumb = v.thumbnail.replace(/\(m=[^)]+\)\(mh=[^)]+\)/g, '');
       div.innerHTML = `
-        <img src="${v.thumbnail}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22320%22 height=%22180%22><rect fill=%22%231c2135%22 width=%22320%22 height=%22180%22/><text fill=%22%238b91a8%22 x=%22160%22 y=%2290%22 text-anchor=%22middle%22 font-size=%2214%22>No thumb</text></svg>'">
+        <div class="vthumb">
+          <img src="${mainThumb}" loading="lazy" class="vthumb-main" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22320%22 height=%22180%22><rect fill=%22%231c2135%22 width=%22320%22 height=%22180%22/><text fill=%22%238b91a8%22 x=%22160%22 y=%2290%22 text-anchor=%22middle%22 font-size=%2214%22>No thumb</text></svg>'">
+          ${thumbs ? `<div class="vthumbs-hover">${v.thumbnails.map(t => `<img src="${t.replace(/\(m=[^)]+\)\(mh=[^)]+\)/g, '')}" loading="lazy">`).join('')}</div>` : ''}
+        </div>
         <div class="vinfo">
           <div class="vtitle">${v.title}</div>
           <div class="vmeta">${mins}:${secs.toString().padStart(2, '0')} · ${(v.views / 1000).toFixed(0)}k views</div>
         </div>
       `;
       div.addEventListener('click', () => {
+        if (v.embed && queuedEmbeds.has(v.embed)) {
+          div.style.outline = '2px solid #ff4444';
+          setTimeout(() => { div.style.outline = ''; }, 800);
+          return;
+        }
         socket.emit('queueAdd', {
           roomId: currentRoom,
-          entry: { embed: v.embed, title: v.title, thumbnail: v.thumbnail, url: v.url || '' }
+          entry: { embed: v.embed, title: v.title, thumbnail: v.thumbnail, url: v.url || '', duration: v.duration }
         });
+        queuedEmbeds.add(v.embed);
       });
       videoGrid.appendChild(div);
     });

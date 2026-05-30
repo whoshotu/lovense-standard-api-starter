@@ -10,6 +10,7 @@ const http = require('http');
 const fs = require('fs');
 const readline = require('readline');
 const path = require('path');
+const db = require('./db');
 
 const app = express();
 
@@ -282,61 +283,66 @@ const CSV_PATH = fs.existsSync(path.join(__dirname, 'data', 'pornhub.com-db.csv'
   ? path.join(__dirname, 'data', 'pornhub.com-db.csv')
   : path.join(__dirname, 'data', 'pornhub.com-db.sample.csv');
 
+async function queryVideosFromCSV({ page, limit, search, sort, order, category }) {
+  const searchStr = (search || '').toLowerCase();
+  const catStr = (category || '').toLowerCase();
+  const offset = (page - 1) * limit;
+  const allResults = [];
+
+  const rl = readline.createInterface({
+    input: fs.createReadStream(CSV_PATH),
+    crlfDelay: Infinity
+  });
+
+  for await (const line of rl) {
+    const cols = line.split('|');
+    const title = (cols[3] || '').toLowerCase();
+    const cats = (cols[5] || '').toLowerCase();
+    if (searchStr && !title.includes(searchStr)) continue;
+    if (catStr && !cats.includes(catStr)) continue;
+    allResults.push({
+      embed: cols[0] || '',
+      thumbnail: (cols[1] || '').split(';')[0],
+      thumbnails: (cols[1] || '').split(';').filter(Boolean),
+      title: cols[3] || '',
+      tags: (cols[4] || '').split(';').filter(Boolean),
+      categories: cols[5] || '',
+      pornstar: cols[6] || '',
+      duration: parseInt(cols[7]) || 0,
+      views: parseInt(cols[8]) || 0,
+      rating: parseFloat(cols[9]) || 0,
+    });
+  }
+
+  if (sort === 'views') allResults.sort((a, b) => order === 'asc' ? a.views - b.views : b.views - a.views);
+  else if (sort === 'rating') allResults.sort((a, b) => order === 'asc' ? a.rating - b.rating : b.rating - a.rating);
+  else if (sort === 'duration') allResults.sort((a, b) => order === 'asc' ? a.duration - b.duration : b.duration - a.duration);
+  else if (sort === 'title') allResults.sort((a, b) => order === 'asc' ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title));
+
+  const total = allResults.length;
+  return { videos: allResults.slice(offset, offset + limit), total, hasMore: offset + limit < total };
+}
+
 app.get('/videos', async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
-  const search = (req.query.search || '').toLowerCase();
+  const search = req.query.search || '';
   const sort = req.query.sort || '';
   const order = req.query.order || 'desc';
-  const category = (req.query.category || '').toLowerCase();
-  const offset = (page - 1) * limit;
+  const category = req.query.category || '';
 
   try {
-    const allResults = [];
-
-    const rl = readline.createInterface({
-      input: fs.createReadStream(CSV_PATH),
-      crlfDelay: Infinity
-    });
-
-    for await (const line of rl) {
-      const cols = line.split('|');
-      const title = (cols[3] || '').toLowerCase();
-      const cats = (cols[5] || '').toLowerCase();
-
-      if (search && !title.includes(search)) continue;
-      if (category && !cats.includes(category)) continue;
-
-      allResults.push({
-        embed: cols[0] || '',
-        thumbnail: (cols[1] || '').split(';')[0],
-        title: cols[3] || '',
-        tags: (cols[4] || '').split(';').filter(Boolean),
-        categories: cols[5] || '',
-        pornstar: cols[6] || '',
-        duration: parseInt(cols[7]) || 0,
-        views: parseInt(cols[8]) || 0,
-        rating: parseFloat(cols[9]) || 0,
-      });
+    // Try PostgreSQL first
+    if (process.env.DATABASE_URL) {
+      const result = await db.getVideos({ page, limit, search, sort, order, category });
+      if (result && result.videos.length > 0) {
+        return res.json({ ...result, source: 'postgres' });
+      }
     }
 
-    // Sort in-memory
-    if (sort === 'views') {
-      allResults.sort((a, b) => order === 'asc' ? a.views - b.views : b.views - a.views);
-    } else if (sort === 'rating') {
-      allResults.sort((a, b) => order === 'asc' ? a.rating - b.rating : b.rating - a.rating);
-    } else if (sort === 'duration') {
-      allResults.sort((a, b) => order === 'asc' ? a.duration - b.duration : b.duration - a.duration);
-    } else if (sort === 'title') {
-      allResults.sort((a, b) => order === 'asc'
-        ? a.title.localeCompare(b.title)
-        : b.title.localeCompare(a.title));
-    }
-
-    const total = allResults.length;
-    const results = allResults.slice(offset, offset + limit);
-
-    res.json({ videos: results, page, limit, total, hasMore: offset + limit < total });
+    // Fallback to CSV
+    const result = await queryVideosFromCSV({ page, limit, search, sort, order, category });
+    res.json({ ...result, source: 'csv' });
   } catch (e) {
     console.error('[videos] error:', e.message);
     res.status(500).json({ error: e.message });
@@ -346,20 +352,32 @@ app.get('/videos', async (req, res) => {
 // =============================================
 // ROUTE: GET /videos/categories
 // =============================================
+async function queryCategoriesFromCSV() {
+  const cats = new Set();
+  const rl = readline.createInterface({
+    input: fs.createReadStream(CSV_PATH),
+    crlfDelay: Infinity
+  });
+  for await (const line of rl) {
+    const cols = line.split('|');
+    const cat = (cols[5] || '').trim();
+    if (cat) cats.add(cat);
+  }
+  return Array.from(cats).sort();
+}
+
 app.get('/videos/categories', async (req, res) => {
   try {
-    const cats = new Set();
-    const rl = readline.createInterface({
-      input: fs.createReadStream(CSV_PATH),
-      crlfDelay: Infinity
-    });
-    for await (const line of rl) {
-      const cols = line.split('|');
-      const cat = (cols[5] || '').trim();
-      if (cat) cats.add(cat);
+    let categories;
+    if (process.env.DATABASE_URL) {
+      categories = await db.getCategories();
     }
-    res.json({ categories: Array.from(cats).sort() });
+    if (!categories || categories.length === 0) {
+      categories = await queryCategoriesFromCSV();
+    }
+    res.json({ categories });
   } catch (e) {
+    console.error('[categories] error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
