@@ -141,6 +141,40 @@ app.get('/auth', async (req, res) => {
 });
 
 // =============================================
+// ROUTE: GET /ctoken
+// =============================================
+const ctokenCache = {};
+
+app.get('/ctoken', async (req, res) => {
+  const uid = req.query.uid;
+  if (!uid) return res.status(400).json({ error: 'Missing uid' });
+
+  const cached = ctokenCache[uid];
+  if (cached && Date.now() - cached.fetchedAt < 20 * 60 * 60 * 1000) {
+    return res.json({ ctoken: cached.ctoken });
+  }
+
+  try {
+    const fetch = (await import('node-fetch')).default;
+    const apiRes = await fetch(
+      'https://api.lovense-api.com/api/media/pattern/user/ctoken?userId=' + uid,
+      { headers: { dtoken: process.env.LOVENSE_DEV_TOKEN } }
+    );
+    const apiData = await apiRes.json();
+    if (!apiData.data || !apiData.data.ctoken) {
+      console.error('[ctoken] Lovense API error', apiData);
+      return res.status(502).json({ error: 'Failed to obtain ctoken' });
+    }
+    const ctoken = apiData.data.ctoken;
+    ctokenCache[uid] = { ctoken, fetchedAt: Date.now() };
+    res.json({ ctoken, affiliateLink: process.env.LOVENSE_AFFILIATE_LINK || '' });
+  } catch (e) {
+    console.error('[ctoken] exception', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// =============================================
 // ROUTE: GET /session/:uid
 // =============================================
 app.get('/session/:uid', (req, res) => {
@@ -325,8 +359,9 @@ server.listen(PORT, () => {
   console.log(` Endpoints:`);
   console.log(`   GET  /ping           - keep-alive`);
   console.log(`   POST /callback       - Lovense device callback`);
-  console.log(`   GET  /auth           - per-user authToken`);
-  console.log(`   GET  /session/:uid   - check session`);
+   console.log(`   GET  /auth           - per-user authToken`);
+   console.log(`   GET  /ctoken         - per-user ctoken for Pattern sync`);
+   console.log(`   GET  /session/:uid   - check session`);
   console.log(`   GET  /status/:uid    - real-time status`);
   console.log(`   POST /command        - command relay`);
   console.log(`   GET  /videos         - video library`);

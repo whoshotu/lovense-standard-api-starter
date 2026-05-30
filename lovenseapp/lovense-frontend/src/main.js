@@ -17,6 +17,7 @@ if (localStorage.getItem('weplay-age') === 'verified') {
 
 // ==================== State ====================
 let activeSdk = null;
+let currentPattern = null;
 let currentUid = '';
 let currentRoom = 'community';
 let isPrivateRoom = false;
@@ -166,6 +167,11 @@ function connectSocket(uid, token) {
       playEmbed(entry.embed, entry.title);
     } else if (entry.url) {
       loadVideo(entry.url);
+    }
+    // Start Pattern SDK sync for direct video
+    if (entry.url && isDirectVideoUrl(entry.url)) {
+      const mediaId = 'media_' + (entry.title ? entry.title.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30) : String(currentIndex));
+      startPatternSync(mediaId, videoPlayer.duration * 1000 || 60000, videoPlayer);
     }
     renderQueue();
   });
@@ -488,6 +494,36 @@ function playEmbed(embedHtml, title) {
     ytPlayer.style.display = 'block';
     ytPlayer.src = match[1];
     playBtn.textContent = '⏸';
+  }
+}
+
+// ==================== Pattern Sync ====================
+async function fetchCtoken(uid) {
+  const res = await fetch(`${API_BASE}/ctoken?uid=${uid}`);
+  return res.json();
+}
+
+async function startPatternSync(mediaId, durationMs, videoEl) {
+  if (currentPattern) {
+    currentPattern.exit();
+    currentPattern = null;
+  }
+  try {
+    const { ctoken, affiliateLink } = await fetchCtoken(currentUid);
+    if (!ctoken) return;
+    currentPattern = new LovensePattern();
+    currentPattern.sync({
+      ctoken,
+      mediaId,
+      duration: durationMs,
+      videoEl,
+      btnId: 'sync-btn-container',
+      supportedApp: 3,
+      supportAiSync: 1,
+      affiliateLink: affiliateLink || ''
+    });
+  } catch (e) {
+    console.warn('[pattern] sync failed:', e);
   }
 }
 
