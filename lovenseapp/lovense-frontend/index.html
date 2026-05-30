@@ -52,71 +52,90 @@
 
       .header {
         display: flex; align-items: center; justify-content: space-between;
-        padding: 16px 24px; background: var(--surface); border-bottom: 1px solid var(--border);
+        padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
       }
-      .header .logo { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; }
+      .header .logo { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.5px; }
       .header .logo span { color: var(--accent); }
-      .header .actions { display: flex; gap: 12px; align-items: center; }
-      .header .room-info {
-        font-size: 0.85rem; color: var(--muted);
-        display: flex; align-items: center; gap: 8px;
-      }
-      .header .room-info .copy-btn {
-        background: var(--surface-2); border: 1px solid var(--border);
-        color: var(--text); padding: 4px 10px; border-radius: 6px;
-        cursor: pointer; font-size: 0.75rem;
-      }
-      .header .pair-status {
-        font-size: 0.85rem; color: var(--muted);
+      .header .center { display: flex; align-items: center; gap: 10px; }
+      .header .center .room-badge {
         display: flex; align-items: center; gap: 6px;
+        background: var(--surface-2); border: 1px solid var(--border);
+        padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;
+        cursor: default; color: var(--muted);
+      }
+      .header .center .room-badge .name { color: var(--text); font-weight: 600; }
+      .header .actions { display: flex; gap: 8px; align-items: center; }
+      .header .actions button {
+        padding: 6px 14px; border-radius: var(--radius); border: 1px solid var(--border);
+        background: var(--surface-2); color: var(--text); cursor: pointer;
+        font-weight: 600; font-size: 0.8rem; white-space: nowrap;
+      }
+      .header .actions button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+      .header .pair-status {
+        font-size: 0.8rem; color: var(--muted);
+        display: flex; align-items: center; gap: 4px;
       }
       .header .pair-status .dot {
-        width: 8px; height: 8px; border-radius: 50%;
+        width: 7px; height: 7px; border-radius: 50%;
         background: var(--red); display: inline-block;
       }
       .header .pair-status .dot.online { background: var(--green); }
 
-      /* Session Setup */
-      #session-setup {
-        display: flex; flex-direction: column; align-items: center;
-        justify-content: center; height: calc(100vh - 80px); gap: 24px;
+      /* Session Overlay */
+      #session-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+        display: none; align-items: center; justify-content: center; z-index: 100;
       }
-      #session-setup.hidden { display: none; }
-      #session-setup h2 { font-size: 1.8rem; }
-      #session-setup .sub { color: var(--muted); margin-bottom: 8px; }
-      #session-setup .input-group { display: flex; gap: 10px; }
-      #session-setup input {
-        padding: 12px 16px; border-radius: var(--radius);
+      #session-overlay.show { display: flex; }
+      #session-overlay .modal {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 24px; padding: 40px 36px; max-width: 400px;
+        width: 90%; text-align: center;
+      }
+      #session-overlay .modal h3 { margin-bottom: 6px; }
+      #session-overlay .modal .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
+      #session-overlay .modal .input-group { display: flex; gap: 8px; margin-bottom: 16px; }
+      #session-overlay .modal input {
+        flex: 1; padding: 10px 14px; border-radius: var(--radius);
         border: 1px solid var(--border); background: var(--surface-2);
-        color: var(--text); font-size: 1rem; width: 260px;
+        color: var(--text); font-size: 0.95rem;
       }
-      #session-setup .btns { display: flex; gap: 12px; }
-      #session-setup .btns button {
-        padding: 12px 28px; border: none; border-radius: var(--radius);
-        cursor: pointer; font-weight: 600; font-size: 1rem;
+      #session-overlay .modal .btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+      #session-overlay .modal .btns button {
+        padding: 10px 24px; border: none; border-radius: var(--radius);
+        cursor: pointer; font-weight: 600;
       }
-      #session-setup .btns .primary { background: var(--accent); color: #fff; }
-      #session-setup .btns .secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+      #session-overlay .modal .btns .primary { background: var(--accent); color: #fff; }
+      #session-overlay .modal .btns .secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+      #session-overlay .modal .btns .close-btn { background: transparent; color: var(--muted); }
+      #session-overlay .modal .invite-display {
+        background: var(--surface-2); padding: 10px; border-radius: 8px;
+        font-size: 1.2rem; font-weight: 700; letter-spacing: 2px;
+        margin: 12px 0; border: 1px solid var(--border);
+      }
 
       .main-layout {
-        display: flex; gap: 0; height: calc(100vh - 65px);
+        display: flex; gap: 0; height: calc(100vh - 60px);
       }
-      .main-layout.hidden { display: none; }
       .media-area {
         flex: 1; display: flex; flex-direction: column;
-        padding: 16px 20px; min-width: 0;
+        padding: 14px 18px; min-width: 0;
       }
       .queue-bar {
-        display: flex; gap: 8px; overflow-x: auto;
-        padding-bottom: 12px; margin-bottom: 12px; flex-shrink: 0;
+        display: flex; gap: 6px; overflow-x: auto;
+        padding-bottom: 10px; margin-bottom: 10px; flex-shrink: 0;
       }
       .queue-bar .q-item {
-        flex-shrink: 0; padding: 6px 14px; border-radius: 20px;
+        flex-shrink: 0; padding: 5px 12px; border-radius: 16px;
         background: var(--surface-2); border: 1px solid var(--border);
-        cursor: pointer; font-size: 0.8rem; display: flex;
-        align-items: center; gap: 6px; white-space: nowrap; max-width: 200px;
+        cursor: pointer; font-size: 0.78rem; display: flex;
+        align-items: center; gap: 5px; white-space: nowrap; max-width: 180px;
       }
       .queue-bar .q-item.active { border-color: var(--accent); background: rgba(180,74,255,0.15); }
+      .queue-bar .q-item .remove {
+        color: var(--red); cursor: pointer; font-size: 0.9rem;
+        font-weight: 700; background: none; border: none; padding: 0 2px;
+      }
       .video-container {
         flex: 1; background: #000; border-radius: var(--radius);
         overflow: hidden; display: flex; align-items: center;
@@ -126,54 +145,54 @@
       .video-container iframe {
         width: 100%; height: 100%; border: none;
       }
-      .video-container .placeholder { color: var(--muted); text-align: center; }
-      .video-container .placeholder .icon { font-size: 3rem; margin-bottom: 8px; }
+      .video-container .placeholder { color: var(--muted); text-align: center; padding: 20px; }
+      .video-container .placeholder .icon { font-size: 2.5rem; margin-bottom: 6px; }
       .video-controls {
-        display: flex; align-items: center; gap: 14px;
-        padding: 10px 0; flex-shrink: 0;
+        display: flex; align-items: center; gap: 12px;
+        padding: 8px 0; flex-shrink: 0;
       }
       .video-controls #play-btn {
-        width: 40px; height: 40px; border-radius: 50%;
+        width: 36px; height: 36px; border-radius: 50%;
         border: none; background: var(--accent); color: #fff;
-        font-size: 1.1rem; cursor: pointer; display: flex;
+        font-size: 1rem; cursor: pointer; display: flex;
         align-items: center; justify-content: center;
       }
       .video-controls #play-btn:hover { background: var(--accent-hover); }
       .video-controls .vol-wrap {
-        display: flex; align-items: center; gap: 8px; flex: 1;
+        display: flex; align-items: center; gap: 6px; flex: 1;
       }
-      .video-controls .vol-wrap .vol-icon { color: var(--muted); font-size: 0.9rem; }
+      .video-controls .vol-wrap .vol-icon { color: var(--muted); font-size: 0.85rem; }
       .video-controls .vol-wrap input[type="range"] {
-        flex: 1; max-width: 160px; accent-color: var(--accent);
+        flex: 1; max-width: 140px; accent-color: var(--accent);
       }
 
       .sidebar {
-        width: 340px; flex-shrink: 0; display: flex; flex-direction: column;
+        width: 330px; flex-shrink: 0; display: flex; flex-direction: column;
         border-left: 1px solid var(--border); background: var(--surface);
       }
       .sidebar .tab-bar { display: flex; border-bottom: 1px solid var(--border); }
       .sidebar .tab-bar button {
-        flex: 1; padding: 12px; border: none; background: transparent;
+        flex: 1; padding: 10px; border: none; background: transparent;
         color: var(--muted); cursor: pointer; font-weight: 600;
-        font-size: 0.85rem; transition: 0.2s;
+        font-size: 0.82rem; transition: 0.2s;
       }
       .sidebar .tab-bar button.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
-      .sidebar .tab-content { flex: 1; overflow-y: auto; padding: 12px 14px; }
+      .sidebar .tab-content { flex: 1; overflow-y: auto; padding: 10px 12px; }
       .sidebar .tab-content.hidden { display: none; }
 
       /* Browse */
       .filter-bar {
-        display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;
+        display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
       }
       .filter-bar select, .filter-bar input {
-        padding: 6px 10px; border-radius: 8px;
+        padding: 5px 8px; border-radius: 8px;
         border: 1px solid var(--border); background: var(--surface-2);
-        color: var(--text); font-size: 0.8rem; flex: 1; min-width: 0;
+        color: var(--text); font-size: 0.78rem; flex: 1; min-width: 0;
       }
       .filter-bar select option { background: var(--surface-2); }
-      #browse-search { width: 100%; }
+      #browse-search { width: 100%; margin-bottom: 8px; }
       .video-grid {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
       }
       .video-grid .vitem {
         border-radius: 8px; overflow: hidden; cursor: pointer;
@@ -183,70 +202,70 @@
       .video-grid .vitem img {
         width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block;
       }
-      .video-grid .vitem .vinfo { padding: 6px 8px; }
+      .video-grid .vitem .vinfo { padding: 5px 7px; }
       .video-grid .vitem .vinfo .vtitle {
-        font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       }
       .video-grid .vitem .vinfo .vmeta {
-        font-size: 0.7rem; color: var(--muted); margin-top: 2px;
+        font-size: 0.68rem; color: var(--muted); margin-top: 2px;
       }
-      #browse-loading { text-align: center; color: var(--muted); padding: 20px; font-size: 0.9rem; }
+      #browse-loading { text-align: center; color: var(--muted); padding: 16px; font-size: 0.85rem; }
 
       /* Chat */
-      #chat-messages { min-height: 100px; }
-      #chat-messages .msg { margin-bottom: 8px; font-size: 0.9rem; }
+      #chat-messages { min-height: 80px; }
+      #chat-messages .msg { margin-bottom: 6px; font-size: 0.85rem; }
       #chat-messages .msg .user { color: var(--accent); font-weight: 600; }
-      #chat-messages .msg .time { color: var(--muted); font-size: 0.75rem; margin-left: 6px; }
+      #chat-messages .msg .time { color: var(--muted); font-size: 0.72rem; margin-left: 4px; }
       .chat-input-area {
-        display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border);
+        display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--border);
       }
       .chat-input-area textarea {
-        flex: 1; padding: 8px 10px; border-radius: 8px;
+        flex: 1; padding: 6px 8px; border-radius: 8px;
         border: 1px solid var(--border); background: var(--surface-2);
-        color: var(--text); resize: none; font-size: 0.9rem;
+        color: var(--text); resize: none; font-size: 0.85rem;
       }
       .chat-input-area button {
-        padding: 8px 14px; border: none; border-radius: 8px;
+        padding: 6px 12px; border: none; border-radius: 8px;
         background: var(--accent); color: #fff; cursor: pointer; align-self: flex-end;
       }
 
       /* Control */
-      .control-section { margin-bottom: 16px; }
-      .control-section label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+      .control-section { margin-bottom: 14px; }
+      .control-section label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 4px; }
       .control-section select {
-        width: 100%; padding: 8px 10px; border-radius: 8px;
+        width: 100%; padding: 7px 10px; border-radius: 8px;
         border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
       }
       .control-section select option { background: var(--surface-2); }
       .control-status {
-        font-size: 0.85rem; padding: 8px; border-radius: 8px;
+        font-size: 0.82rem; padding: 7px; border-radius: 8px;
         background: var(--surface-2); margin: 8px 0; text-align: center;
       }
       .control-status .highlight { color: var(--accent); font-weight: 600; }
-      .control-btns { display: flex; gap: 8px; margin-top: 8px; }
+      .control-btns { display: flex; gap: 6px; margin-top: 6px; }
       .control-btns button {
-        flex: 1; padding: 8px; border-radius: 8px; border: none;
-        cursor: pointer; font-weight: 600;
+        flex: 1; padding: 7px; border-radius: 8px; border: none;
+        cursor: pointer; font-weight: 600; font-size: 0.82rem;
       }
       .control-btns .primary { background: var(--accent); color: #fff; }
       .control-btns .secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
 
       /* Toy controls */
-      .toy-controls { padding: 8px 0; }
+      .toy-controls { padding: 6px 0; }
       .toy-controls label {
-        display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 0.9rem;
+        display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.85rem;
       }
-      .toy-controls label .val { min-width: 28px; text-align: center; color: var(--accent); font-weight: 600; }
+      .toy-controls label .val { min-width: 24px; text-align: center; color: var(--accent); font-weight: 600; }
       .toy-controls input[type="range"] { flex: 1; accent-color: var(--accent); }
-      .toy-btns { display: flex; gap: 10px; margin-top: 4px; }
-      .toy-btns button { flex: 1; padding: 10px; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; }
+      .toy-btns { display: flex; gap: 8px; margin-top: 4px; }
+      .toy-btns button { flex: 1; padding: 8px; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; font-size: 0.82rem; }
       .toy-btns .send { background: var(--accent); color: #fff; }
       .toy-btns .stop { background: transparent; color: var(--red); border: 1px solid var(--red); }
 
       @media (max-width: 768px) {
         .main-layout { flex-direction: column; height: auto; }
         .sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border); }
-        .sidebar .tab-content { max-height: 300px; }
+        .sidebar .tab-content { max-height: 280px; }
       }
     </style>
   </head>
@@ -266,40 +285,54 @@
     <div class="app" id="app">
       <header class="header">
         <div class="logo">We<span>Play</span></div>
-        <div class="actions">
-          <div class="room-info" id="room-info" style="display:none;">
-            <span>Room: <strong id="room-display">—</strong></span>
-            <button class="copy-btn" id="copy-invite">Copy</button>
+        <div class="center">
+          <div class="room-badge" id="room-badge">
+            <span>🌐</span>
+            <span class="name" id="room-name">Community</span>
           </div>
+        </div>
+        <div class="actions">
+          <button id="create-private-btn">+ Create Private</button>
+          <button id="leave-room-btn" style="display:none;">↩ Community</button>
           <span class="pair-status">
             <span class="dot" id="status-dot"></span>
-            <span id="status-text">Not paired</span>
+            <span id="status-text">—</span>
           </span>
-          <button class="header-btn" id="init-sdk" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:8px 16px;cursor:pointer;font-weight:600;">Pair Toy</button>
+          <button id="init-sdk" style="padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface-2);color:var(--text);cursor:pointer;font-weight:600;font-size:0.8rem;">Pair Toy</button>
         </div>
       </header>
 
-      <!-- Session Setup -->
-      <div id="session-setup">
-        <h2>Start or Join a Session</h2>
-        <p class="sub">Create a private room or join one with an invite code</p>
-        <div class="btns">
-          <button class="primary" id="create-room">Create Room</button>
+      <!-- Session Overlay -->
+      <div id="session-overlay">
+        <div class="modal">
+          <h3 id="overlay-title">Private Session</h3>
+          <p class="sub" id="overlay-sub">Create a private room or join one</p>
+          <div id="overlay-invite" style="display:none;">
+            <p style="font-size:0.85rem;color:var(--muted);margin-bottom:6px;">Share this code with your partner:</p>
+            <div class="invite-display" id="invite-code-display">—</div>
+            <button class="primary" id="copy-invite-btn" style="padding:8px 20px;border:none;border-radius:var(--radius);background:var(--accent);color:#fff;cursor:pointer;font-weight:600;margin-bottom:12px;">Copy Code</button>
+          </div>
+          <div id="overlay-join">
+            <div class="input-group">
+              <input id="room-code-input" type="text" placeholder="Enter invite code...">
+              <button class="secondary" id="join-room-btn">Join</button>
+            </div>
+          </div>
+          <div id="overlay-error" style="color:var(--red);font-size:0.85rem;margin-bottom:10px;"></div>
+          <div class="btns">
+            <button class="primary" id="create-room-btn">Create Room</button>
+            <button class="close-btn" id="close-overlay">Cancel</button>
+          </div>
         </div>
-        <div class="input-group">
-          <input id="room-code-input" type="text" placeholder="Enter invite code...">
-          <button class="secondary" id="join-room">Join</button>
-        </div>
-        <div id="setup-error" style="color:var(--red);font-size:0.9rem;"></div>
       </div>
 
-      <div class="main-layout hidden" id="main-layout">
+      <div class="main-layout" id="main-layout">
         <div class="media-area">
           <div class="queue-bar" id="queue-bar"></div>
           <div class="video-container" id="video-container">
             <div class="placeholder" id="placeholder">
               <div class="icon">🎬</div>
-              <div>Select a video from Browse to start watching together</div>
+              <div>No videos in queue — add from Browse</div>
             </div>
             <video id="video-player" playsinline style="display:none;"></video>
             <iframe id="yt-player" style="display:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
@@ -324,7 +357,7 @@
             <div id="chat-messages"></div>
           </div>
           <div class="tab-content hidden" id="tab-toys">
-            <div class="control-section">
+            <div class="control-section" id="control-section">
               <label>Control Mode</label>
               <select id="control-mode-select">
                 <option value="none">None (no control)</option>
@@ -340,8 +373,8 @@
               <button class="primary" id="request-control">Request Control</button>
               <button class="secondary" id="release-control">Release</button>
             </div>
-            <div id="toy-owner-status" style="font-size:0.8rem;color:var(--muted);margin-top:8px;"></div>
-            <hr style="border-color:var(--border);margin:12px 0;">
+            <div id="toy-owner-status" style="font-size:0.78rem;color:var(--muted);margin-top:6px;"></div>
+            <hr style="border-color:var(--border);margin:10px 0;">
             <div class="toy-controls">
               <label>Vibrate <span class="val" id="vibrate-value">0</span><input type="range" id="vibrate-range" min="0" max="20" value="0"></label>
               <label>Rotate <span class="val" id="rotate-value">0</span><input type="range" id="rotate-range" min="0" max="20" value="0"></label>

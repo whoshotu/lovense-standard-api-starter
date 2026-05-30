@@ -15,21 +15,30 @@ if (localStorage.getItem('weplay-age') === 'verified') {
   });
 }
 
-// ==================== Constants ====================
+// ==================== State ====================
 let activeSdk = null;
 let currentUid = '';
-let currentRoom = '';
+let currentRoom = 'community';
+let isPrivateRoom = false;
 let hasUtoken = false;
+let queue = [];
+let currentIndex = -1;
 const API_BASE = 'https://lovense-standard-api-starter.onrender.com';
 
 // ==================== DOM Refs ====================
-const sessionSetup = document.getElementById('session-setup');
 const mainLayout = document.getElementById('main-layout');
-const setupError = document.getElementById('setup-error');
+const roomName = document.getElementById('room-name');
+const roomBadge = document.getElementById('room-badge');
+const createPrivateBtn = document.getElementById('create-private-btn');
+const leaveRoomBtn = document.getElementById('leave-room-btn');
+const overlay = document.getElementById('session-overlay');
+const overlayTitle = document.getElementById('overlay-title');
+const overlaySub = document.getElementById('overlay-sub');
+const overlayInvite = document.getElementById('overlay-invite');
+const overlayJoin = document.getElementById('overlay-join');
+const overlayError = document.getElementById('overlay-error');
+const inviteCodeDisplay = document.getElementById('invite-code-display');
 const roomCodeInput = document.getElementById('room-code-input');
-const roomInfo = document.getElementById('room-info');
-const roomDisplay = document.getElementById('room-display');
-const copyInvite = document.getElementById('copy-invite');
 const commandOutput = document.getElementById('command-output');
 const pairStatus = document.getElementById('status-text');
 const statusDot = document.getElementById('status-dot');
@@ -37,8 +46,6 @@ const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 
 // Media
-let queue = [];
-let currentIndex = -1;
 const videoPlayer = document.getElementById('video-player');
 const preloadPlayer = document.getElementById('preload-player');
 const videoContainer = document.getElementById('video-container');
@@ -56,6 +63,7 @@ const sortSelect = document.getElementById('sort-select');
 const categorySelect = document.getElementById('category-select');
 
 // Control
+const controlSection = document.getElementById('control-section');
 const controlModeSelect = document.getElementById('control-mode-select');
 const controlStatus = document.getElementById('control-status');
 const controllerDisplay = document.getElementById('controller-display');
@@ -82,10 +90,7 @@ function connectSocket(uid, token) {
   });
 
   socket.on('connected', (data) => {
-    console.log('[socket] confirmed', data);
-    if (data.toyStatus) {
-      updateToyStatus(data.toyStatus);
-    }
+    if (data.toyStatus) updateToyStatus(data.toyStatus);
   });
 
   socket.on('connect_error', (err) => {
@@ -93,20 +98,36 @@ function connectSocket(uid, token) {
   });
 
   socket.on('error', (data) => {
-    setupError.textContent = data.message;
+    overlayError.textContent = data.message;
+  });
+
+  socket.on('roomJoined', (data) => {
+    if (data.isCommunity) {
+      currentRoom = 'community';
+      isPrivateRoom = false;
+      enterRoom(currentRoom);
+    }
   });
 
   socket.on('roomCreated', (data) => {
     currentRoom = data.roomId;
+    isPrivateRoom = true;
     enterRoom(data.roomId);
+    showInviteModal(data.roomId);
   });
 
   socket.on('userJoined', (data) => {
-    addChatMessage('system', `${data.uid} joined the room`);
+    addChatMessage('system', `${data.uid} joined`);
+    if (data.totalMembers !== undefined) {
+      updateRoomInfo(data.totalMembers);
+    }
   });
 
   socket.on('userLeft', (data) => {
-    addChatMessage('system', `${data.uid} left the room`);
+    addChatMessage('system', `${data.uid} left`);
+    if (data.totalMembers !== undefined) {
+      updateRoomInfo(data.totalMembers);
+    }
   });
 
   socket.on('chatMessage', (data) => {
@@ -117,7 +138,39 @@ function connectSocket(uid, token) {
     updateToyStatus(data.status || 'disconnected');
   });
 
-  // Media sync
+  // ---- Queue Sync ----
+  socket.on('queueUpdate', (data) => {
+    queue = data.queue || [];
+    currentIndex = data.currentIndex !== undefined ? data.currentIndex : -1;
+    renderQueue();
+    if (currentIndex === -1) {
+      videoPlayer.style.display = 'none';
+      ytPlayer.style.display = 'none';
+      placeholder.style.display = 'flex';
+    }
+  });
+
+  socket.on('queueNowPlaying', (data) => {
+    if (data.index === -1 || !data.entry) {
+      currentIndex = -1;
+      videoPlayer.style.display = 'none';
+      ytPlayer.style.display = 'none';
+      placeholder.style.display = 'flex';
+      playBtn.textContent = '▶';
+      renderQueue();
+      return;
+    }
+    currentIndex = data.index;
+    const entry = data.entry;
+    if (entry.embed) {
+      playEmbed(entry.embed, entry.title);
+    } else if (entry.url) {
+      loadVideo(entry.url);
+    }
+    renderQueue();
+  });
+
+  // ---- Media Sync ----
   socket.on('mediaSync', (data) => {
     if (data.action === 'play' && data.url) {
       if (data.isEmbed) {
@@ -130,12 +183,10 @@ function connectSocket(uid, token) {
         loadVideo(data.url, data.currentTime || 0);
       }
       if (data.playing !== undefined && !data.playing) videoPlayer.pause();
-    } else if (data.action === 'skip') {
-      playNext();
     }
   });
 
-  // Control
+  // ---- Control ----
   socket.on('controlModeChanged', (data) => {
     controlModeSelect.value = data.mode;
     updateControlStatus(data.mode, null);
@@ -154,7 +205,7 @@ function connectSocket(uid, token) {
   });
 
   socket.on('controlResponse', (data) => {
-    addChatMessage('system', `Control request ${data.accept ? 'accepted' : 'declined'} by ${data.uid}`);
+    addChatMessage('system', `Control ${data.accept ? 'accepted' : 'declined'}`);
   });
 
   socket.on('toyCommand', (data) => {
@@ -166,58 +217,88 @@ function connectSocket(uid, token) {
 
   socket.on('userStatus', (data) => {
     if (data.toyStatus === 'paired') {
-      toyOwnerStatus.textContent = `${data.uid}'s toy is paired and ready`;
+      toyOwnerStatus.textContent = `${data.uid}'s toy is paired`;
     }
   });
 }
 
-// ==================== Room Setup ====================
-document.getElementById('create-room').addEventListener('click', () => {
-  if (!currentUid) {
-    setupError.textContent = 'Please pair a toy first or set a UID';
-    return;
+// ==================== Room Management ====================
+function enterRoom(roomId) {
+  currentRoom = roomId;
+  mainLayout.style.display = 'flex';
+  roomName.textContent = isPrivateRoom ? roomId : 'Community';
+  roomBadge.innerHTML = isPrivateRoom ? `<span>🔒</span><span class="name">${roomId}</span>` : `<span>🌐</span><span class="name">Community</span>`;
+  createPrivateBtn.style.display = isPrivateRoom ? 'none' : 'inline-block';
+  leaveRoomBtn.style.display = isPrivateRoom ? 'inline-block' : 'none';
+  controlSection.style.display = isPrivateRoom ? 'block' : 'none';
+  if (isPrivateRoom) {
+    controlModeSelect.value = 'none';
   }
+  loadCategories();
+  loadVideos();
+}
+
+function updateRoomInfo(count) {
+  if (!isPrivateRoom) {
+    roomName.textContent = `Community (${count})`;
+  }
+}
+
+function showOverlay(title, sub) {
+  overlayTitle.textContent = title;
+  overlaySub.textContent = sub;
+  overlay.classList.add('show');
+  overlayError.textContent = '';
+}
+
+function hideOverlay() {
+  overlay.classList.remove('show');
+}
+
+function showInviteModal(code) {
+  overlayInvite.style.display = 'block';
+  overlayJoin.style.display = 'none';
+  document.querySelector('#session-overlay .btns .close-btn').textContent = 'Close';
+  inviteCodeDisplay.textContent = code;
+  showOverlay('Room Created', 'Share this code with your partner');
+}
+
+// ---- Overlay Buttons ----
+createPrivateBtn.addEventListener('click', () => {
+  overlayInvite.style.display = 'none';
+  overlayJoin.style.display = 'block';
+  document.querySelector('#session-overlay .btns .close-btn').textContent = 'Cancel';
+  showOverlay('Private Session', 'Create a private room or join one');
+});
+
+document.getElementById('close-overlay').addEventListener('click', hideOverlay);
+
+document.getElementById('create-room-btn').addEventListener('click', () => {
+  hideOverlay();
   socket.emit('createRoom');
 });
 
-document.getElementById('join-room').addEventListener('click', () => {
+document.getElementById('join-room-btn').addEventListener('click', () => {
   const code = roomCodeInput.value.trim();
-  if (!code) { setupError.textContent = 'Enter an invite code'; return; }
-  if (!currentUid) { setupError.textContent = 'Please set up your identity first'; return; }
-  currentRoom = code;
+  if (!code) { overlayError.textContent = 'Enter a code'; return; }
+  hideOverlay();
   socket.emit('joinRoom', { roomId: code });
 });
 
 roomCodeInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('join-room').click();
+  if (e.key === 'Enter') document.getElementById('join-room-btn').click();
 });
 
-copyInvite.addEventListener('click', () => {
-  navigator.clipboard.writeText(currentRoom).then(() => {
-    copyInvite.textContent = 'Copied!';
-    setTimeout(() => { copyInvite.textContent = 'Copy'; }, 2000);
+document.getElementById('copy-invite-btn').addEventListener('click', () => {
+  navigator.clipboard.writeText(inviteCodeDisplay.textContent).then(() => {
+    document.getElementById('copy-invite-btn').textContent = 'Copied!';
+    setTimeout(() => { document.getElementById('copy-invite-btn').textContent = 'Copy Code'; }, 2000);
   });
 });
 
-function enterRoom(roomId) {
-  currentRoom = roomId;
-  sessionSetup.classList.add('hidden');
-  mainLayout.classList.remove('hidden');
-  roomInfo.style.display = 'flex';
-  roomDisplay.textContent = roomId;
-
-  // Set default control mode
-  if (socket) {
-    socket.emit('setControlMode', { roomId, mode: controlModeSelect.value });
-  }
-
-  // Load categories for filter
-  loadCategories();
-  // Initial browse load
-  loadVideos();
-  // Welcome message
-  addChatMessage('system', `Joined room ${roomId}. Select a video from Browse to start!`);
-}
+leaveRoomBtn.addEventListener('click', () => {
+  socket.emit('leaveRoom', { roomId: currentRoom });
+});
 
 // ==================== Chat ====================
 function addChatMessage(user, message, timestamp) {
@@ -258,9 +339,6 @@ playBtn.addEventListener('click', () => {
       videoPlayer.pause();
       playBtn.textContent = '▶';
     }
-  } else if (ytPlayer.style.display !== 'none' && ytPlayer.src) {
-    // For embeds, we can't control easily, but broadcast play/pause
-    socket.emit('mediaSync', { roomId: currentRoom, action: 'play', url: ytPlayer.src, playing: false });
   }
 });
 
@@ -273,10 +351,9 @@ volumeSlider.addEventListener('input', () => {
 
 videoPlayer.onerror = (e) => {
   console.warn('Video error:', videoPlayer.error ? videoPlayer.error.message : 'unknown');
-  playNext();
+  socket.emit('queueSkip', { roomId: currentRoom });
 };
 
-// ==================== Queue & Auto-Queue ====================
 function isDirectVideoUrl(url) {
   return /\.(mp4|webm|ogg|mov|avi|mkv|flv)(\?.*)?$/i.test(url);
 }
@@ -296,68 +373,33 @@ function renderQueue() {
   queue.forEach((item, i) => {
     const div = document.createElement('div');
     div.className = 'q-item' + (i === currentIndex ? ' active' : '');
-    const label = item.title ? (item.title.length > 40 ? item.title.slice(0, 40) + '…' : item.title) : (item.url.length > 40 ? item.url.slice(0, 40) + '…' : item.url);
+    const label = item.title ? (item.title.length > 36 ? item.title.slice(0, 36) + '…' : item.title) : 'Video';
     div.innerHTML = `<span>${i === currentIndex ? '▶ ' : ''}${label}</span>`;
-    div.addEventListener('click', () => playIndex(i));
+    div.addEventListener('click', () => {
+      socket.emit('queuePlayIndex', { roomId: currentRoom, index: i });
+    });
     queueBar.appendChild(div);
   });
-}
-
-function addToQueue(entry) {
-  queue.push(entry);
-  renderQueue();
-  if (currentIndex === -1) playIndex(0);
-}
-
-function playIndex(idx) {
-  if (idx < 0 || idx >= queue.length) return;
-  currentIndex = idx;
-  const entry = queue[idx];
-  if (entry.embed) {
-    playEmbed(entry.embed, entry.title);
-  } else {
-    loadVideo(entry.url);
-    socket.emit('mediaSync', { roomId: currentRoom, action: 'play', url: entry.url, currentTime: 0, playing: true });
-  }
-  renderQueue();
-  preloadNext();
-}
-
-function playNext() {
-  const next = currentIndex + 1;
-  if (next < queue.length) playIndex(next);
-  else {
-    currentIndex = -1;
-    videoPlayer.style.display = 'none';
+  if (queue.length === 0 && currentIndex === -1) {
     placeholder.style.display = 'flex';
+    videoPlayer.style.display = 'none';
     ytPlayer.style.display = 'none';
-    renderQueue();
   }
 }
 
-function preloadNext() {
-  const next = currentIndex + 1;
-  if (next < queue.length) {
-    const entry = queue[next];
-    if (entry.url && isDirectVideoUrl(entry.url)) {
-      preloadPlayer.src = entry.url;
-    }
-  }
-}
-
-// Auto-remove on end + play next
-videoPlayer.addEventListener('ended', () => {
-  socket.emit('mediaSync', { roomId: currentRoom, action: 'skip' });
-  // Remove finished video from queue
-  queue.splice(currentIndex, 1);
-  playNext();
-});
-
-// Pre-load 10 seconds before end
+// Preload next before end
 videoPlayer.addEventListener('timeupdate', () => {
   if (videoPlayer.duration && videoPlayer.currentTime >= videoPlayer.duration - 10) {
-    preloadNext();
+    const next = currentIndex + 1;
+    if (next < queue.length && queue[next].url && isDirectVideoUrl(queue[next].url)) {
+      preloadPlayer.src = queue[next].url;
+    }
   }
+});
+
+// Auto-skip on end
+videoPlayer.addEventListener('ended', () => {
+  socket.emit('queueSkip', { roomId: currentRoom });
 });
 
 // ==================== Video Browser ====================
@@ -404,7 +446,10 @@ async function loadVideos() {
         </div>
       `;
       div.addEventListener('click', () => {
-        addToQueue({ embed: v.embed, title: v.title, thumbnail: v.thumbnail });
+        socket.emit('queueAdd', {
+          roomId: currentRoom,
+          entry: { embed: v.embed, title: v.title, thumbnail: v.thumbnail, url: v.url || '' }
+        });
       });
       videoGrid.appendChild(div);
     });
@@ -417,13 +462,11 @@ async function loadVideos() {
   }
 }
 
-// Infinite scroll
 document.getElementById('tab-browse').addEventListener('scroll', () => {
   const el = document.getElementById('tab-browse');
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) loadVideos();
 });
 
-// Search debounce
 browseSearch.addEventListener('input', () => {
   clearTimeout(browseSearch._timer);
   browseSearch._timer = setTimeout(() => {
@@ -433,7 +476,6 @@ browseSearch.addEventListener('input', () => {
   }, 400);
 });
 
-// Sort / category change
 sortSelect.addEventListener('change', () => { browsePage = 1; loadVideos(); });
 categorySelect.addEventListener('change', () => { browsePage = 1; loadVideos(); });
 
@@ -445,7 +487,7 @@ function playEmbed(embedHtml, title) {
     placeholder.style.display = 'none';
     ytPlayer.style.display = 'block';
     ytPlayer.src = match[1];
-    socket.emit('mediaSync', { roomId: currentRoom, action: 'play', url: match[1], playing: true, isEmbed: true });
+    playBtn.textContent = '⏸';
   }
 }
 
@@ -459,19 +501,17 @@ function updateControlStatus(mode, controllerUid) {
 }
 
 controlModeSelect.addEventListener('change', () => {
-  if (currentRoom) {
+  if (currentRoom && isPrivateRoom) {
     socket.emit('setControlMode', { roomId: currentRoom, mode: controlModeSelect.value });
   }
 });
 
 requestCtrlBtn.addEventListener('click', () => {
-  if (!currentRoom) return;
-  socket.emit('controlRequest', { roomId: currentRoom });
+  if (currentRoom) socket.emit('controlRequest', { roomId: currentRoom });
 });
 
 releaseCtrlBtn.addEventListener('click', () => {
-  if (!currentRoom) return;
-  socket.emit('releaseControl', { roomId: currentRoom });
+  if (currentRoom) socket.emit('releaseControl', { roomId: currentRoom });
 });
 
 // ==================== SDK / Toy Pairing ====================
@@ -486,10 +526,8 @@ async function initSdk() {
     currentUid = authData.uid;
     hasUtoken = !!authData.utoken;
 
-    // Reconnect socket with utoken for full auth
     if (authData.utoken) {
       connectSocket(currentUid, authData.utoken);
-      // Rejoin room if already in one
       if (currentRoom) {
         setTimeout(() => socket.emit('joinRoom', { roomId: currentRoom }), 500);
       }
@@ -513,7 +551,6 @@ async function initSdk() {
         activeSdk = sdk;
         statusDot.classList.add('online');
         pairStatus.textContent = 'Paired';
-        // Report toy status
         if (socket && socket.connected) {
           socket.emit('deviceStatus', { status: 'paired' });
         }
@@ -562,7 +599,7 @@ document.getElementById('send-toy').addEventListener('click', () => {
 document.getElementById('stop-toy').addEventListener('click', () => {
   if (activeSdk) activeSdk.sendToyCommand({ vibrate: 0, rotate: 0, pump: 0 });
   socket.emit('toyCommand', { roomId: currentRoom, command: { vibrate: 0, rotate: 0, pump: 0 } });
-  commandOutput.textContent = 'Stop command sent';
+  commandOutput.textContent = 'Stop sent';
 });
 
 // ==================== Tab Switching ====================
@@ -578,7 +615,6 @@ document.querySelectorAll('[data-tab]').forEach(btn => {
 });
 
 // ==================== Init ====================
-// Generate or restore anonymous UID for non-toy users
 let storedUid = localStorage.getItem('weplay-uid');
 if (!storedUid) {
   storedUid = 'user_' + Math.random().toString(36).substr(2, 8);
@@ -586,5 +622,4 @@ if (!storedUid) {
 }
 currentUid = storedUid;
 
-// Connect socket immediately with just uid (no token = basic mode)
 connectSocket(currentUid, null);
