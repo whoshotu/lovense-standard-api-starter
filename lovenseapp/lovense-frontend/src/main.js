@@ -1,19 +1,13 @@
 // ==================== Age Gate ====================
 const ageGate = document.getElementById('age-gate');
 const appEl = document.getElementById('app');
-if (localStorage.getItem('weplay-age') === 'verified') {
+document.getElementById('age-yes').addEventListener('click', () => {
   ageGate.style.display = 'none';
   appEl.classList.add('show');
-} else {
-  document.getElementById('age-yes').addEventListener('click', () => {
-    localStorage.setItem('weplay-age', 'verified');
-    ageGate.style.display = 'none';
-    appEl.classList.add('show');
-  });
-  document.getElementById('age-no').addEventListener('click', () => {
-    window.location.href = 'https://google.com';
-  });
-}
+});
+document.getElementById('age-no').addEventListener('click', () => {
+  window.location.href = 'https://google.com';
+});
 
 // ==================== State ====================
 let activeSdk = null;
