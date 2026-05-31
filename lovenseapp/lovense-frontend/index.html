@@ -152,6 +152,12 @@
       }
       .video-container .placeholder { color: var(--muted); text-align: center; padding: 20px; }
       .video-container .placeholder .icon { font-size: 2.5rem; margin-bottom: 6px; }
+      .ad-space {
+        display: flex; gap: 8px; justify-content: center;
+        padding: 6px 0; flex-shrink: 0; flex-wrap: wrap;
+      }
+      .ad-space a { display: block; line-height: 0; }
+      .ad-space img { max-width: 100%; height: auto; border-radius: 6px; }
       .video-controls {
         display: flex; align-items: center; gap: 12px;
         padding: 8px 0; flex-shrink: 0;
@@ -355,6 +361,14 @@
             <video id="video-player" playsinline style="display:none;"></video>
             <iframe id="yt-player" style="display:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
             <video id="preload-player" preload="auto" style="display:none;"></video>
+          </div>
+          <div class="ad-space">
+            <a href="https://www.lovense.com/r/e9picp" target="_blank" rel="noopener">
+              <img width="720" height="90" alt="" src="https://cdn.lovense.com/UploadFiles/web/affiliate/20220406/51fc5b97b68a405a888be4dc5efa100d.png" loading="lazy">
+            </a>
+            <a href="https://www.lovense.com/r/u1xc0v" target="_blank" rel="noopener">
+              <img width="720" height="90" alt="" src="https://cdn.lovense.com/UploadFiles/web/affiliate/20220406/d7cf463c8ef14e01aa87ce12250b0809.png" loading="lazy">
+            </a>
           </div>
           <div class="video-controls">
             <button id="play-btn">▶</button>
