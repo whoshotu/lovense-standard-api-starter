@@ -12,16 +12,16 @@
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       :root {
-        --bg: #0b0e1a;
-        --surface: #131724;
-        --surface-2: #1c2135;
+        --bg: #1a001a; /* dark velvet background */
+        --surface: #2b002b; /* deeper surface */
+        --surface-2: #3c003c;
         --text: #f0f2f8;
-        --muted: #8b91a8;
-        --accent: #b44aff;
+        --muted: #a080a0;
+        --accent: #b44aff; /* keep existing accent */
         --accent-hover: #9f3ee6;
         --green: #22c55e;
         --red: #ef4444;
-        --border: #252b42;
+        --border: #452045;
         --radius: 12px;
       }
       body {
@@ -422,8 +422,12 @@
               </div>
               <div id="command-output">No command sent yet.</div>
             </div>
-          </div>
-          <div class="tab-content hidden" id="tab-browse">
+            <!-- AI Section -->
+            <div class="ai-section" style="margin-top:12px;">
+              <button class="primary" id="start-ai">Start AI Pattern</button>
+              <div id="ai-status" style="margin-top:6px;color:var(--muted);font-size:0.85rem;"></div>
+            </div>
+            <div class="tab-content hidden" id="tab-browse">
             <div class="filter-bar">
               <select id="sort-select">
                 <option value="">Default</option>

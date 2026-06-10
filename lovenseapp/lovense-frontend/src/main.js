@@ -153,15 +153,19 @@ function connectSocket(uid, token) {
   });
 
   socket.on('queueNowPlaying', (data) => {
-    if (data.index === -1 || !data.entry) {
-      currentIndex = -1;
-      videoPlayer.style.display = 'none';
-      ytPlayer.style.display = 'none';
-      placeholder.style.display = 'flex';
-      playBtn.textContent = '▶';
-      renderQueue();
-      return;
-    }
+      if (data.index === -1 || !data.entry) {
+        currentIndex = -1;
+        videoPlayer.style.display = 'none';
+        ytPlayer.style.display = 'none';
+        placeholder.style.display = 'flex';
+        // ensure controls are visible for next direct video
+        playBtn.style.display = '';
+        const volWrap = document.querySelector('.vol-wrap');
+        if (volWrap) volWrap.style.display = '';
+        playBtn.textContent = '▶';
+        renderQueue();
+        return;
+      }
     currentIndex = data.index;
     const entry = data.entry;
     clearTimeout(skipTimer);
@@ -199,6 +203,10 @@ function connectSocket(uid, token) {
         placeholder.style.display = 'none';
         ytPlayer.style.display = 'block';
         ytPlayer.src = data.url;
+        // hide controls for embed playback from remote sync
+        playBtn.style.display = 'none';
+        const volWrap = document.querySelector('.vol-wrap');
+        if (volWrap) volWrap.style.display = 'none';
       } else {
         ytPlayer.style.display = 'none';
         loadVideo(data.url, data.currentTime || 0);
@@ -386,6 +394,10 @@ function loadVideo(url, currentTime) {
   videoPlayer.src = url;
   videoPlayer.currentTime = currentTime || 0;
   videoPlayer.play().catch(() => {});
+  // show controls for direct video
+  playBtn.style.display = '';
+  const volWrap = document.querySelector('.vol-wrap');
+  if (volWrap) volWrap.style.display = '';
   playBtn.textContent = '⏸';
 }
 
@@ -527,6 +539,13 @@ function playEmbed(embedHtml, title) {
     placeholder.style.display = 'none';
     ytPlayer.style.display = 'block';
     ytPlayer.src = match[1];
+    // hide controls that don't apply to the embed
+    playBtn.style.display = 'none';
+    // hide the volume wrapper (parent of the slider)
+    const volWrap = document.querySelector('.vol-wrap');
+    if (volWrap) volWrap.style.display = 'none';
+    // sync playback to other participants
+    socket.emit('mediaSync', { roomId: currentRoom, action: 'play', url: match[1], isEmbed: true, playing: true });
     playBtn.textContent = '⏸';
   }
 }
@@ -582,6 +601,29 @@ requestCtrlBtn.addEventListener('click', () => {
 
 releaseCtrlBtn.addEventListener('click', () => {
   if (currentRoom) socket.emit('releaseControl', { roomId: currentRoom });
+});
+
+// === Lovense AI Pattern ===
+const startAiBtn = document.getElementById('start-ai');
+const aiStatusEl = document.getElementById('ai-status');
+startAiBtn.addEventListener('click', async () => {
+  if (!currentRoom) return;
+  aiStatusEl.textContent = 'Generating AI pattern…';
+  // Use a simple random duration (30‑90 s) for demo; real AI could fetch from backend
+  const durationSec = Math.floor(30 + Math.random() * 60);
+  const mediaId = 'ai_' + Date.now();
+  // Create a dummy video element for pattern sync (hidden)
+  const dummy = document.createElement('video');
+  dummy.style.display = 'none';
+  document.body.appendChild(dummy);
+  try {
+    startPatternSync(mediaId, durationSec * 1000, dummy);
+    aiStatusEl.textContent = `AI pattern running (${durationSec}s)`;
+  } catch (e) {
+    console.warn('AI pattern error', e);
+    aiStatusEl.textContent = 'Failed to start AI pattern';
+  }
+  setTimeout(() => { document.body.removeChild(dummy); }, durationSec * 1000 + 2000);
 });
 
 // ==================== SDK / Toy Pairing ====================
