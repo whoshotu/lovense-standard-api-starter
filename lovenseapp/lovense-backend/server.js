@@ -273,6 +273,8 @@ app.get('/health', (req, res) => {
     time: new Date().toISOString(),
     aesConfigured: !!(process.env.LOVENSE_AES_KEY && process.env.LOVENSE_AES_IV),
     tokenConfigured: !!process.env.LOVENSE_DEV_TOKEN,
+    database: db.getDbType() || 'csv',
+    oracleConfigured: !!process.env.ORACLE_CONNECTION_STRING,
   });
 });
 
@@ -332,11 +334,11 @@ app.get('/videos', async (req, res) => {
   const category = req.query.category || '';
 
   try {
-    // Try PostgreSQL first
-    if (process.env.DATABASE_URL) {
+    const dbType = db.getDbType();
+    if (dbType) {
       const result = await db.getVideos({ page, limit, search, sort, order, category });
       if (result && result.videos.length > 0) {
-        return res.json({ ...result, source: 'postgres' });
+        return res.json({ ...result, source: dbType });
       }
     }
 
@@ -368,8 +370,9 @@ async function queryCategoriesFromCSV() {
 
 app.get('/videos/categories', async (req, res) => {
   try {
+    const dbType = db.getDbType();
     let categories;
-    if (process.env.DATABASE_URL) {
+    if (dbType) {
       categories = await db.getCategories();
     }
     if (!categories || categories.length === 0) {
@@ -389,6 +392,7 @@ server.listen(PORT, () => {
   console.log(' Lovense Backend Server Running');
   console.log('=============================================');
   console.log(` Port:       ${PORT}`);
+  console.log(` Database:   ${db.getDbType() || 'CSV (no DB configured)'}`);
   console.log(` Endpoints:`);
   console.log(`   GET  /ping           - keep-alive`);
   console.log(`   POST /callback       - Lovense device callback`);
